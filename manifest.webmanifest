@@ -1,0 +1,27 @@
+{
+  "name": "JARVIS Reply Assistant",
+  "short_name": "JARVIS",
+  "description": "A draft-first AI reply co-pilot for messenger conversations.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0b1016",
+  "background_color": "#0b1016",
+  "categories": ["productivity", "communication"],
+  "icons": [
+    {
+      "src": "./icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
