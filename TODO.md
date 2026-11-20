@@ -9,7 +9,7 @@
 - Let the user choose Professional, Friendly, Funny, Short, Apologetic, Romantic, or JARVIS modes.
 - Show multiple suggested replies for the active incoming message.
 - Allow a suggestion to become an editable draft.
-- Provide copy and approve actions.
+- Provide copy and use-as-draft review actions; never represent review as an automatic send.
 - Never send a message automatically.
 
 ## [x] Deliver simulated voice input

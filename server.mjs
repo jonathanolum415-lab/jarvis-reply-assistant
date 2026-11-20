@@ -1,5 +1,7 @@
 import http from 'node:http';
+import { lookup } from 'node:dns/promises';
 import { readFile } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,19 +83,61 @@ function cleanSuggestions(content) {
   };
 }
 
+function isPrivateAddress(address) {
+  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '');
+  if (normalized.startsWith('::ffff:')) {
+    const mapped = normalized.slice(7);
+    if (isIP(mapped) === 4) return isPrivateAddress(mapped);
+  }
+  if (isIP(normalized) === 4) {
+    const [first, second, third] = normalized.split('.').map(Number);
+    return first === 0 || first === 10 || first === 127 ||
+      (first === 100 && second >= 64 && second <= 127) ||
+      (first === 169 && second === 254) ||
+      (first === 172 && second >= 16 && second <= 31) ||
+      (first === 192 && second === 168) ||
+      (first === 192 && second === 0 && third === 0) ||
+      (first === 198 && (second === 18 || second === 19)) ||
+      (first === 198 && second === 51 && third === 100) ||
+      (first === 203 && second === 0 && third === 113) ||
+      first >= 224;
+  }
+  return normalized === '::' || normalized === '::1' ||
+    normalized.startsWith('fc') || normalized.startsWith('fd') ||
+    /^fe[89ab]/.test(normalized) || normalized.startsWith('ff');
+}
+
 function isSafeSourceUrl(value) {
   try {
     const url = new URL(value);
     if (!['http:', 'https:'].includes(url.protocol)) return false;
-    const host = url.hostname.toLowerCase();
+    if (url.username || url.password) return false;
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
     return !(
-      host === 'localhost' || host === 'ip6-localhost' || host === '0.0.0.0' ||
-      host === '::1' || host.startsWith('127.') || host.startsWith('10.') ||
-      host.startsWith('192.168.') || host.startsWith('169.254.') ||
-      /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+      host === 'localhost' || host.endsWith('.localhost') || host === 'ip6-localhost' ||
+      host === '0.0.0.0' || host.endsWith('.local') || host.endsWith('.internal')
     );
   } catch {
     return false;
+  }
+}
+
+async function assertPublicSourceUrl(value) {
+  if (!isSafeSourceUrl(value)) throw new Error('Only public HTTP(S) source URLs are supported.');
+  const url = new URL(value);
+  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (isIP(host)) {
+    if (isPrivateAddress(host)) throw new Error('Private or local source addresses are not allowed.');
+    return;
+  }
+  let records;
+  try {
+    records = await lookup(host, { all: true, verbatim: true });
+  } catch {
+    throw new Error('Source hostname could not be resolved.');
+  }
+  if (!records.length || records.some(record => isPrivateAddress(record.address))) {
+    throw new Error('Source hostname resolves to a private or local address.');
   }
 }
 
@@ -121,14 +165,24 @@ function extractPageText(html) {
 }
 
 async function fetchSource(url) {
-  if (!isSafeSourceUrl(url)) throw new Error('Only public HTTP(S) source URLs are supported.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 12000);
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'JARVIS-Source-Reader/1.0', Accept: 'text/html,text/plain;q=0.9,*/*;q=0.5' }
-    });
+    let currentUrl = url;
+    let response;
+    for (let redirect = 0; redirect <= 3; redirect += 1) {
+      await assertPublicSourceUrl(currentUrl);
+      response = await fetch(currentUrl, {
+        redirect: 'manual',
+        signal: controller.signal,
+        headers: { 'User-Agent': 'JARVIS-Source-Reader/1.0', Accept: 'text/html,text/plain;q=0.9,*/*;q=0.5' }
+      });
+      if (response.status < 300 || response.status >= 400) break;
+      const location = response.headers.get('location');
+      if (!location) throw new Error(`Source returned HTTP ${response.status} without a redirect target.`);
+      currentUrl = new URL(location, currentUrl).toString();
+      if (redirect === 3) throw new Error('Source redirected too many times.');
+    }
     if (!response.ok) throw new Error(`Source returned HTTP ${response.status}.`);
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/') && !contentType.includes('html') && !contentType.includes('json')) {

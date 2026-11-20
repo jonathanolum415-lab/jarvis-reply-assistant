@@ -140,6 +140,7 @@ function renderSuggestions() {
       <p>${escapeHtml(text)}</p>
       <div class="suggestion-actions">
         <button class="small-button explain-single" data-index="${index}">why this</button>
+        <button class="small-button copy-draft" data-text="${escapeAttr(text)}">copy</button>
         <button class="small-button use-draft" data-text="${escapeAttr(text)}">use as draft ↗</button>
       </div>
     </div>
@@ -151,6 +152,19 @@ function renderSuggestions() {
       incomingInput.value = state.selectedDraft;
       showToast('Draft loaded — review before approval');
       button.textContent = 'draft loaded ✓';
+    });
+  });
+
+  suggestions.querySelectorAll('.copy-draft').forEach(button => {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.text);
+        button.textContent = 'copied ✓';
+        showToast('Draft copied to clipboard');
+      } catch {
+        incomingInput.value = button.dataset.text;
+        showToast('Clipboard unavailable — draft loaded for manual copying');
+      }
     });
   });
 
@@ -297,12 +311,14 @@ function handleVoiceTranscript(transcript) {
 function mediaEmbedUrl(url) {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname.includes('youtube.com')) {
+    const hostname = parsed.hostname.toLowerCase().replace(/\.$/, '');
+    const isHostOrSubdomain = base => hostname === base || hostname.endsWith(`.${base}`);
+    if (isHostOrSubdomain('youtube.com')) {
       const id = parsed.searchParams.get('v');
       return id ? `https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1` : '';
     }
     if (parsed.hostname === 'youtu.be') return `https://www.youtube.com/embed/${encodeURIComponent(parsed.pathname.slice(1))}?autoplay=1`;
-    if (parsed.hostname.includes('vimeo.com')) {
+    if (isHostOrSubdomain('vimeo.com')) {
       const id = parsed.pathname.split('/').filter(Boolean).pop();
       return id ? `https://player.vimeo.com/video/${encodeURIComponent(id)}?autoplay=1` : '';
     }
@@ -323,17 +339,37 @@ function playMedia(url = mediaUrl.value.trim()) {
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported URL');
     mediaUrl.value = url;
     const embed = mediaEmbedUrl(url);
+    mediaPlayer.replaceChildren();
     if (embed) {
-      mediaPlayer.innerHTML = `<iframe src="${embed}" title="JARVIS media player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      const frame = document.createElement('iframe');
+      frame.src = embed;
+      frame.title = 'JARVIS media player';
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+      frame.allowFullscreen = true;
+      mediaPlayer.append(frame);
       mediaStatus.textContent = 'embedded media playing · use the player controls';
     } else if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/i.test(parsed.pathname + parsed.search + parsed.hash)) {
-      mediaPlayer.innerHTML = `<audio controls autoplay src="${url}"></audio>`;
+      const audio = document.createElement('audio');
+      audio.controls = true;
+      audio.autoplay = true;
+      audio.src = url;
+      mediaPlayer.append(audio);
       mediaStatus.textContent = 'audio playing';
     } else if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(parsed.pathname + parsed.search + parsed.hash)) {
-      mediaPlayer.innerHTML = `<video controls autoplay playsinline src="${url}"></video>`;
+      const video = document.createElement('video');
+      video.controls = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      video.src = url;
+      mediaPlayer.append(video);
       mediaStatus.textContent = 'video playing';
     } else {
-      mediaPlayer.innerHTML = `<iframe src="${url}" title="JARVIS media player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      const frame = document.createElement('iframe');
+      frame.src = url;
+      frame.title = 'JARVIS media player';
+      frame.allow = 'autoplay; encrypted-media; picture-in-picture';
+      frame.allowFullscreen = true;
+      mediaPlayer.append(frame);
       mediaStatus.textContent = 'media loaded · if playback is blocked, open the source directly';
     }
     mediaPlayer.hidden = false;

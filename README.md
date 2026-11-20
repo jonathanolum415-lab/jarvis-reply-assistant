@@ -6,7 +6,7 @@ JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations.
 
 ## Live versions
 
-- GitHub Pages frontend: <https://jonathanolum415-lab.github.io/jarvis-reply-assistant/>
+- GitHub Pages frontend: <https://jonathanolum415-lab.github.io/Jarvis-Reply-Assistant-J.R.A-/>
 - Manus full-stack deployment: <https://jarvisreply-dvh8yfjn.manus.space>
 
 ## How it works
@@ -15,7 +15,7 @@ JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations.
 2. JARVIS combines the message with the visible multi-turn conversation, tracked context signals, and the selected response mode.
 3. The backend sends that request to the managed LLM service through server-side credentials.
 4. The interface displays three reply suggestions and an explanation of why they fit.
-5. Choose **use as draft** to place a suggestion back in the editable composer. Sending remains the user's responsibility.
+5. Copy a suggestion or choose **use as draft** to place it back in the editable composer. Sending remains the user's responsibility.
 
 The app never sends a WhatsApp, Messenger, SMS, or other chat message automatically.
 
@@ -108,8 +108,8 @@ Install dependencies and start the development server:
 
 ```bash
 npm ci
-MANUS_API_URL="https://your-managed-ai-endpoint" \\
-MANUS_API_KEY="your-server-only-key" \\
+MANUS_API_URL="https://your-managed-ai-endpoint" \
+MANUS_API_KEY="your-server-only-key" \
 npm run dev
 ```
 
@@ -120,9 +120,9 @@ Build and run the production container locally:
 ```bash
 npm ci
 npm run build
-NODE_ENV=production \\
-MANUS_API_URL="https://your-managed-ai-endpoint" \\
-MANUS_API_KEY="your-server-only-key" \\
+NODE_ENV=production \
+MANUS_API_URL="https://your-managed-ai-endpoint" \
+MANUS_API_KEY="your-server-only-key" \
 npm start
 ```
 
