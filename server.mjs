@@ -39,8 +39,8 @@ function readJson(req) {
   });
 }
 function rateLimit(req) {
-  const forwarded=req.headers['x-forwarded-for'];
-  const ip=(typeof forwarded==='string'?forwarded.split(',')[0].trim():'')||req.socket.remoteAddress||'unknown';
+  // Use the direct socket address; do not trust client-supplied X-Forwarded-For.
+  const ip=req.socket.remoteAddress||'unknown';
   const now=Date.now(),entry=rateLimits.get(ip);
   if(!entry||now-entry.start>=RATE_LIMIT_WINDOW_MS){rateLimits.set(ip,{start:now,count:1});return false;}
   entry.count++;return entry.count>RATE_LIMIT_MAX;
@@ -103,6 +103,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     if(url.pathname==='/api/health'&&req.method==='GET'){sendJson(res,200,{ok:true,aiConfigured:Boolean(apiBase&&apiKey)});return;}
     if(url.pathname==='/api/reply'&&req.method==='POST'){
+      if(!req.headers['content-type']?.toLowerCase().includes('application/json')){sendJson(res,415,{error:'Content-Type must be application/json.'});return;}
       if(rateLimit(req)){sendJson(res,429,{error:'Rate limit exceeded. Wait a minute and try again.'});return;}
       const input=await readJson(req),result=await generateReplies(input);sendJson(res,200,result);return;
     }
@@ -111,4 +112,6 @@ const server=http.createServer(async(req,res)=>{
   }catch(error){sendJson(res,error.status||500,{error:error.message||'Request failed.'});}
 });
 setInterval(()=>{const now=Date.now();for(const [ip,entry] of rateLimits)if(now-entry.start>RATE_LIMIT_WINDOW_MS)rateLimits.delete(ip);},RATE_LIMIT_WINDOW_MS).unref();
+server.requestTimeout=30000;
+server.headersTimeout=10000;
 server.listen(port,'0.0.0.0',()=>console.log(`JARVIS server listening on 0.0.0.0:${port}`));
