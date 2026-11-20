@@ -272,7 +272,7 @@ textarea::placeholder, input::placeholder { color: #858585; }
 @keyframes blink { 50% { opacity: 0; } }
 @keyframes rise { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
 
-@media (max-width: 1120px) {
+@media (max-width: 1280px) {
   .sidebar { width: 224px; min-width: 224px; }
   .workspace { grid-template-columns: minmax(0, 1fr); }
   .intel-pane { border-top: 1px solid #303030; border-left: 0; }
