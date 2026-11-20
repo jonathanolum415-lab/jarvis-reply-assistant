@@ -157,12 +157,19 @@ function renderSuggestions() {
 
   suggestions.querySelectorAll('.copy-draft').forEach(button => {
     button.addEventListener('click', async () => {
+      const text = button.dataset.text;
       try {
-        await navigator.clipboard.writeText(button.dataset.text);
+        if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
+        await Promise.race([
+          navigator.clipboard.writeText(text),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Clipboard timed out')), 700))
+        ]);
         button.textContent = 'copied ✓';
         showToast('Draft copied to clipboard');
       } catch {
-        incomingInput.value = button.dataset.text;
+        incomingInput.value = text;
+        state.selectedDraft = text;
+        button.textContent = 'loaded ✓';
         showToast('Clipboard unavailable — draft loaded for manual copying');
       }
     });
