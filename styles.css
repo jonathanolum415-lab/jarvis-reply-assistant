@@ -104,6 +104,7 @@ button { -webkit-tap-highlight-color: transparent; }
 .conversation-meta span { display: block; margin-top: 4px; color: var(--faint); font: 10px var(--mono); }
 .meta-spacer { flex: 1; }
 .channel-label { margin: 0 !important; padding: 6px 8px; color: var(--faint) !important; border: 1px solid var(--border); }
+.integration-note { margin: -9px 0 18px; color: var(--faint); font: 10px var(--mono); letter-spacing: .02em; }
 
 .message-stream {
   height: 390px;
