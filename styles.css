@@ -127,15 +127,26 @@ textarea { display: block; width: 100%; padding: 17px 17px 14px; resize: none; c
 textarea::placeholder { color: var(--faint); }
 .composer-actions { justify-content: space-between; padding: 10px 11px 11px; border-top: 1px solid var(--border-light); }
 .composer-right-actions { gap: 12px; }
+.voice-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 .voice-button, .primary-button { padding: 9px 12px; border-radius: 5px; cursor: pointer; font: 11px var(--mono); transition: .2s; }
 .voice-button { color: var(--muted); background: transparent; border: 1px solid var(--border); }
 .voice-button:hover, .voice-button.listening { color: var(--accent); border-color: rgba(116, 217, 220, .65); background: rgba(116, 217, 220, .05); }
+.voice-button:disabled { opacity: .45; cursor: not-allowed; }
+.live-voice-button { color: var(--accent); border-color: rgba(116, 217, 220, .28); }
 .mic-glyph { margin-right: 7px; color: var(--accent); }
 .primary-button { color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); font-weight: 600; }
 .primary-button:hover { background: var(--accent-strong); transform: translateY(-1px); }
 .primary-button:disabled { opacity: .55; cursor: wait; transform: none; }
 .shortcut { color: var(--faint); font-size: 10px; }
 .voice-status { height: 18px; margin-top: 8px; color: var(--accent); font-size: 10px; }
+.live-voice-panel { margin-top: 10px; padding: 13px 14px; border: 1px solid rgba(116, 217, 220, .28); border-radius: 7px; background: rgba(116, 217, 220, .045); animation: rise .25s ease both; }
+.live-voice-heading, .live-voice-heading > div, .live-voice-actions { display: flex; align-items: center; }
+.live-voice-heading, .live-voice-actions { justify-content: space-between; gap: 12px; }
+.live-voice-heading > div { gap: 8px; }
+.live-voice-heading strong { color: var(--accent); font: 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.live-voice-state, #voiceCapability { color: var(--muted); font: 9px var(--mono); }
+.live-voice-panel p { margin: 9px 0 12px; color: var(--text-soft); font-size: 11px; line-height: 1.5; }
+.live-voice-actions .text-button { padding: 0; }
 
 .intel-header { gap: 14px; padding-bottom: 25px; border-bottom: 1px solid var(--border-light); }
 .orb-wrap { width: 55px; height: 55px; display: grid; place-items: center; }

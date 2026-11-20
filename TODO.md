@@ -16,6 +16,11 @@
 - Provide a voice control with listening, processing, and transcribed-message states.
 - Show the simulated transcript in the composer and make it available for reply drafting.
 
+## [x] Deliver live voice conversation mode
+- Use browser microphone speech recognition for natural spoken turns where supported.
+- Send each captured turn through the real reply API, read the first draft aloud, and resume listening for the next turn.
+- Provide pause and stop-audio controls, compatibility messaging, and an explicit boundary that nothing is sent automatically.
+
 ## [x] Demonstrate multi-turn context management
 - Seed a multi-turn conversation with visible prior messages.
 - Show tracked context chips and a context summary in the intelligence rail.

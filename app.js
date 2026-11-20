@@ -62,12 +62,22 @@ const incomingInput = $('incomingInput');
 const voiceButton = $('voiceButton');
 const voiceLabel = $('voiceLabel');
 const voiceStatus = $('voiceStatus');
+const liveVoiceButton = $('liveVoiceButton');
+const liveVoiceLabel = $('liveVoiceLabel');
+const liveVoicePanel = $('liveVoicePanel');
+const liveVoiceState = $('liveVoiceState');
+const stopSpeakingButton = $('stopSpeakingButton');
+const voiceCapability = $('voiceCapability');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
 const toast = $('toast');
 const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://jarvisreply-dvh8yfjn.manus.space'
   : '';
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+let liveVoiceActive = false;
+let voiceConversationBusy = false;
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>'"]/g, character => ({
@@ -147,12 +157,12 @@ function renderContext() {
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
-async function generate() {
+async function generate({ speakReply = false } = {}) {
   const text = incomingInput.value.trim();
   if (!text) {
-    showToast('Add an incoming message or use voice simulation first');
+    showToast('Add an incoming message or use voice input first');
     incomingInput.focus();
-    return;
+    return '';
   }
 
   state.incoming = text;
@@ -190,6 +200,10 @@ async function generate() {
   } finally {
     $('generateButton').disabled = false;
   }
+
+  const draft = state.suggestions[0] || '';
+  if (speakReply && draft) speakDraft(draft);
+  return draft;
 }
 
 function simulateVoice() {
@@ -217,6 +231,127 @@ function simulateVoice() {
   }, 1100);
 }
 
+function setLiveVoiceState(label, status = label) {
+  liveVoiceState.textContent = label;
+  voiceStatus.textContent = status;
+}
+
+function speakDraft(text) {
+  if (!('speechSynthesis' in window)) {
+    setLiveVoiceState('text only', 'browser speech output is unavailable · draft ready for review');
+    voiceConversationBusy = false;
+    if (liveVoiceActive) beginListening();
+    return;
+  }
+
+  recognition?.abort();
+  voiceConversationBusy = true;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.02;
+  utterance.pitch = .95;
+  utterance.onstart = () => setLiveVoiceState('speaking', 'JARVIS is reading the draft aloud');
+  utterance.onend = () => {
+    voiceConversationBusy = false;
+    if (liveVoiceActive) beginListening();
+    else setLiveVoiceState('paused', 'draft read aloud · nothing was sent');
+  };
+  utterance.onerror = () => {
+    voiceConversationBusy = false;
+    setLiveVoiceState('text only', 'draft ready · speech output was interrupted');
+    if (liveVoiceActive) beginListening();
+  };
+  window.speechSynthesis.speak(utterance);
+}
+
+function handleVoiceTranscript(transcript) {
+  const cleanTranscript = transcript.trim();
+  if (!cleanTranscript || voiceConversationBusy) return;
+  incomingInput.value = cleanTranscript;
+  state.incoming = cleanTranscript;
+  renderContext();
+  voiceConversationBusy = true;
+  setLiveVoiceState('thinking', 'transcript captured · asking managed AI for a draft');
+  generate({ speakReply: true }).finally(() => {
+    if (!('speechSynthesis' in window) || !window.speechSynthesis.speaking) {
+      voiceConversationBusy = false;
+      if (liveVoiceActive) beginListening();
+    }
+  });
+}
+
+function beginListening() {
+  if (!recognition || !liveVoiceActive || voiceConversationBusy) return;
+  try {
+    recognition.start();
+  } catch (error) {
+    if (error.name !== 'InvalidStateError') {
+      setLiveVoiceState('mic error', 'allow microphone access and try again');
+    }
+  }
+}
+
+function stopLiveVoice() {
+  liveVoiceActive = false;
+  voiceConversationBusy = false;
+  recognition?.stop();
+  window.speechSynthesis?.cancel();
+  liveVoiceButton.classList.remove('listening');
+  liveVoiceLabel.textContent = 'live voice';
+  setLiveVoiceState('paused', 'live voice paused · draft mode remains active');
+}
+
+function startLiveVoice() {
+  if (!recognition) {
+    showToast('Live voice needs Chrome or Edge microphone support');
+    return;
+  }
+  liveVoiceActive = true;
+  liveVoicePanel.hidden = false;
+  liveVoiceButton.classList.add('listening');
+  liveVoiceLabel.textContent = 'pause live voice';
+  setLiveVoiceState('listening', 'voice channel open · speak naturally');
+  beginListening();
+}
+
+function setupLiveVoice() {
+  liveVoicePanel.hidden = true;
+  if (!SpeechRecognition) {
+    liveVoiceButton.disabled = true;
+    liveVoiceLabel.textContent = 'live voice unavailable';
+    voiceCapability.textContent = 'use Chrome or Edge for microphone input';
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = () => setLiveVoiceState('listening', 'voice channel open · speak naturally');
+  recognition.onresult = event => {
+    let interim = '';
+    let finalText = '';
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const transcript = event.results[index][0].transcript;
+      if (event.results[index].isFinal) finalText += transcript;
+      else interim += transcript;
+    }
+    if (interim) setLiveVoiceState('listening', `hearing: ${interim}`);
+    if (finalText) handleVoiceTranscript(finalText);
+  };
+  recognition.onerror = event => {
+    if (event.error === 'aborted') return;
+    const message = event.error === 'not-allowed'
+      ? 'microphone permission was denied'
+      : `voice channel error · ${event.error}`;
+    setLiveVoiceState('mic error', message);
+    if (event.error === 'not-allowed') stopLiveVoice();
+  };
+  recognition.onend = () => {
+    if (liveVoiceActive && !voiceConversationBusy) setTimeout(beginListening, 180);
+  };
+}
+
 async function checkApi() {
   try {
     const response = await fetch(`${API_BASE}/api/health`);
@@ -239,6 +374,16 @@ incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
 voiceButton.addEventListener('click', simulateVoice);
+liveVoiceButton.addEventListener('click', () => {
+  if (liveVoiceActive) stopLiveVoice();
+  else startLiveVoice();
+});
+stopSpeakingButton.addEventListener('click', () => {
+  window.speechSynthesis?.cancel();
+  voiceConversationBusy = false;
+  setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'draft audio stopped');
+  if (liveVoiceActive) beginListening();
+});
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
   showToast(reason);
@@ -259,6 +404,7 @@ $('newThreadButton').addEventListener('click', () => {
 $('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
 
 state.suggestions = localReplySets[state.mode];
+setupLiveVoice();
 renderMessages();
 renderModes();
 renderSuggestions();
