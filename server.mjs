@@ -61,7 +61,7 @@ function readJson(req) {
   });
 }
 
-function cleanSuggestions(content) {
+function cleanReply(content) {
   const lines = content
     .replace(/```(?:json|text)?/gi, '')
     .replace(/```/g, '')
@@ -69,14 +69,10 @@ function cleanSuggestions(content) {
     .map(line => line.trim())
     .filter(Boolean);
 
-  const options = lines
-    .filter(line => !/^explanation\s*:/i.test(line))
-    .map(line => line.replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim())
-    .filter(line => line.length > 12);
-
   const explanationLine = lines.find(line => /^explanation\s*:/i.test(line));
+  const replyLine = lines.find(line => /^reply\s*:/i.test(line)) || lines.find(line => !/^explanation\s*:/i.test(line));
   return {
-    suggestions: [...new Set(options)].slice(0, 3),
+    reply: replyLine?.replace(/^reply\s*:\s*/i, '').replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim() || '',
     explanation: explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '') : ''
   };
 }
@@ -97,9 +93,9 @@ async function generateReplies(input) {
     'You are JARVIS, a discreet reply co-pilot.',
     'Draft replies only. Never claim to send a message, and never invent facts.',
     `Selected response mode: ${mode}. Match that tone while staying natural and concise.`,
-    'Return exactly three options, one per line as OPTION 1:, OPTION 2:, OPTION 3:.',
-    'After those lines, return one line beginning with EXPLANATION: explaining how the thread context shaped the options.',
-    'Do not use markdown bullets or quotation marks around the options.'
+    'Return exactly one natural reply on a line beginning with REPLY:.',
+    'After that line, return one line beginning with EXPLANATION: explaining how the thread context shaped the reply.',
+    'Do not use markdown bullets or quotation marks around the reply.'
   ].join(' ');
   const user = [
     `Incoming message to answer: ${message}`,
@@ -132,9 +128,9 @@ async function generateReplies(input) {
     throw new Error('The AI service returned no reply text.');
   }
 
-  const parsed = cleanSuggestions(content);
-  if (parsed.suggestions.length < 3) {
-    throw new Error('The AI service returned fewer than three usable reply options.');
+  const parsed = cleanReply(content);
+  if (!parsed.reply || parsed.reply.length < 2) {
+    throw new Error('The AI service returned no usable reply.');
   }
   return { ...parsed, provider: 'managed-llm' };
 }

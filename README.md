@@ -1,6 +1,6 @@
 # JARVIS Reply Assistant
 
-JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations. It helps a person understand an incoming message, generate several tone-aware reply options, review the context used, and choose an editable draft.
+JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations. It helps a person understand an incoming message, generate one natural tone-aware reply, review the context used, and choose an editable draft.
 
 > **Important:** JARVIS does not connect to or read personal WhatsApp chats. The WhatsApp-style conversation shown in the interface is a manual context workflow: paste the incoming message or relevant conversation text into the app, then review the generated draft yourself.
 
@@ -14,8 +14,8 @@ JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations.
 1. Paste an incoming message into the composer, or use browser voice input.
 2. JARVIS combines the message with the visible multi-turn conversation, tracked context signals, and the selected response mode.
 3. The backend sends that request to the managed LLM service through server-side credentials.
-4. The interface displays three reply suggestions and an explanation of why they fit.
-5. Copy a suggestion or choose **use as draft** to place it back in the editable composer. Sending remains the user's responsibility.
+4. JARVIS displays one natural assistant reply and an explanation of why it fits.
+5. Copy the reply or choose **use as draft** to place it back in the editable composer. Sending remains the user's responsibility.
 
 The app never sends a WhatsApp, Messenger, SMS, or other chat message automatically.
 
@@ -23,7 +23,7 @@ The app never sends a WhatsApp, Messenger, SMS, or other chat message automatica
 
 ### Draft-first reply assistance
 
-The available response modes are Professional, Friendly, Funny, Short, Apologetic, Romantic, and JARVIS. Each mode produces three alternatives, while the context panel shows the conversation summary and tracked signals used for drafting.
+The available response modes are Professional, Friendly, Funny, Short, Apologetic, Romantic, and JARVIS. Each mode shapes one direct reply, while the context panel shows the conversation summary and tracked signals used for drafting.
 
 ### Voice input and live voice
 
@@ -73,7 +73,7 @@ Returns deployment health and whether managed AI credentials are configured.
 
 ### `POST /api/reply`
 
-Generates three draft replies from the selected mode, incoming message, visible turns, and context signals. The response includes an explanation and provider status.
+Generates one draft reply from the selected mode, incoming message, visible turns, and context signals. The response includes an explanation and provider status.
 
 ## Local development
 

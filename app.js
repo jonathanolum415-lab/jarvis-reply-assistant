@@ -4,7 +4,6 @@ const state = {
   voicePhase: 'idle',
   selectedDraft: '',
   explanation: '',
-  suggestions: [],
   replyPending: false,
   turns: [
     { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
@@ -15,48 +14,19 @@ const state = {
 };
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplySets = {
-  Professional: [
-    'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-    'Perfect, thank you. Please send the notes when you have a moment, and I will meet you near the library after lunch.',
-    'Confirmed. I will be there after lunch and ready to go through the material.'
-  ],
-  Friendly: [
-    'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-    'Nice, I’m in. Send the notes whenever you can and I’ll meet you by the library after lunch.',
-    'Perfect plan. Thanks for finding a spot — see you tomorrow!'
-  ],
-  Funny: [
-    'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-    'Deal. After lunch I’ll arrive with energy, questions, and probably too much coffee.',
-    'Excellent. The library awaits our academic comeback.'
-  ],
-  Short: [
-    'Perfect, see you after lunch. Send the notes too?',
-    'I’m in. See you tomorrow near the library.',
-    'Sounds good — see you then.'
-  ],
-  Apologetic: [
-    'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-    'Apologies, I nearly missed this. The plan sounds good — I’ll meet you after lunch.',
-    'Sorry, I got caught up earlier. Thanks for organizing this; I’ll be there.'
-  ],
-  Romantic: [
-    'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-    'A quiet spot with you sounds like a pretty perfect plan. See you tomorrow.',
-    'I’m looking forward to it. Thank you for making the plan so easy.'
-  ],
-  JARVIS: [
-    'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.',
-    'Your proposal is optimal: quiet location, notes in advance, and a post-lunch rendezvous. Consider it locked.',
-    'I have aligned the schedule. Send the notes at your convenience; I will meet you near the library.'
-  ]
+const localReplies = {
+  Professional: 'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
+  Friendly: 'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
+  Funny: 'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
+  Short: 'Perfect, see you after lunch. Send the notes too?',
+  Apologetic: 'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
+  Romantic: 'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
+  JARVIS: 'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.'
 };
 
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
 const modeGrid = $('modeGrid');
-const suggestions = $('suggestions');
 const contextChips = $('contextChips');
 const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
@@ -165,61 +135,9 @@ function renderModes() {
   modeGrid.querySelectorAll('[data-mode]').forEach(button => {
     button.addEventListener('click', () => {
       state.mode = button.dataset.mode;
-      state.suggestions = localReplySets[state.mode];
       state.explanation = '';
       generatingState.textContent = 'ready to generate';
       renderModes();
-      renderSuggestions();
-    });
-  });
-}
-
-function renderSuggestions() {
-  const current = state.suggestions.length ? state.suggestions : localReplySets[state.mode];
-  suggestions.innerHTML = current.map((text, index) => `
-    <div class="suggestion-card">
-      <p>${escapeHtml(text)}</p>
-      <div class="suggestion-actions">
-        <button class="small-button explain-single" data-index="${index}">why this</button>
-        <button class="small-button copy-draft" data-text="${escapeAttr(text)}">copy</button>
-        <button class="small-button use-draft" data-text="${escapeAttr(text)}">use as draft ↗</button>
-      </div>
-    </div>
-  `).join('');
-
-  suggestions.querySelectorAll('.use-draft').forEach(button => {
-    button.addEventListener('click', () => {
-      state.selectedDraft = button.dataset.text;
-      incomingInput.value = state.selectedDraft;
-      showToast('Draft loaded — review before approval');
-      button.textContent = 'draft loaded ✓';
-    });
-  });
-
-  suggestions.querySelectorAll('.copy-draft').forEach(button => {
-    button.addEventListener('click', async () => {
-      const text = button.dataset.text;
-      try {
-        if (!navigator.clipboard?.writeText) throw new Error('Clipboard API unavailable');
-        await Promise.race([
-          navigator.clipboard.writeText(text),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Clipboard timed out')), 700))
-        ]);
-        button.textContent = 'copied ✓';
-        showToast('Draft copied to clipboard');
-      } catch {
-        incomingInput.value = text;
-        state.selectedDraft = text;
-        button.textContent = 'loaded ✓';
-        showToast('Clipboard unavailable — draft loaded for manual copying');
-      }
-    });
-  });
-
-  suggestions.querySelectorAll('.explain-single').forEach(button => {
-    button.addEventListener('click', () => {
-      const reason = state.explanation || `This option uses the ${state.mode.toLowerCase()} tone and respects the agreed study-session timing, library location, and notes offer.`;
-      showToast(reason);
     });
   });
 }
@@ -262,26 +180,23 @@ async function generate({ speakReply = false } = {}) {
     });
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
-    state.suggestions = payload.suggestions;
     state.explanation = payload.explanation || '';
-    state.turns.push({ from: 'JARVIS', text: state.suggestions[0] || 'I have a draft ready for your review.', time: 'now', assistant: true, draft: true });
+    const reply = payload.reply || 'I have a draft ready for your review.';
+    state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'live AI response';
-    renderSuggestions();
-    showToast('Live AI drafts ready — approval still required');
+    showToast('JARVIS reply ready — approval still required');
   } catch (error) {
-    state.suggestions = localReplySets[state.mode];
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: state.suggestions[0], time: 'now', assistant: true, draft: true });
+    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'offline fallback';
-    renderSuggestions();
-    showToast(error.message || 'The AI endpoint is unavailable; local drafts are shown');
+    showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
   } finally {
     state.replyPending = false;
     renderMessages();
     $('generateButton').disabled = false;
   }
 
-  const draft = state.suggestions[0] || '';
+  const draft = state.turns.findLast(turn => turn.assistant)?.text || '';
   if (speakReply && draft) speakDraft(draft);
   return draft;
 }
@@ -508,22 +423,18 @@ $('newThreadButton').addEventListener('click', () => {
   state.context = [];
   state.incoming = '';
   state.replyPending = false;
-  state.suggestions = localReplySets[state.mode];
   state.explanation = '';
   incomingInput.value = '';
   renderMessages();
   renderContext();
-  renderSuggestions();
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
 $('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
 
-state.suggestions = localReplySets[state.mode];
 setupLiveVoice();
 setupPwa();
 renderMessages();
 renderModes();
-renderSuggestions();
 renderContext();
 checkApi();
