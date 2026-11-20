@@ -13,6 +13,8 @@ const state = {
 try { const saved = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (saved && Array.isArray(saved.turns) && Array.isArray(saved.context)) { state.turns = saved.turns.slice(-100); state.context = saved.context.slice(0,20); } } catch {}
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
+let savedDrafts = [];
+try { savedDrafts = JSON.parse(localStorage.getItem('jarvis-saved-drafts-v1') || '[]'); if (!Array.isArray(savedDrafts)) savedDrafts = []; } catch { savedDrafts = []; }
 
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
@@ -23,6 +25,9 @@ const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
 const draftEditor = $('draftEditor');
 const copyEditedDraft = $('copyEditedDraft');
+const saveDraftButton = $('saveDraftButton');
+const savedDraftList = $('savedDraftList');
+const settingsDialog = $('settingsDialog');
 const voiceButton = $('voiceButton');
 const voiceLabel = $('voiceLabel');
 const voiceStatus = $('voiceStatus');
@@ -187,6 +192,12 @@ function renderSuggestions() {
       showToast(reason);
     });
   });
+}
+
+function renderSavedDrafts() {
+  savedDraftList.innerHTML = savedDrafts.length ? savedDrafts.map((draft, i) => `<div class="saved-draft-item"><span>${escapeHtml(draft.slice(0, 80))}</span><button class="small-button load-saved-draft" data-index="${i}">load</button><button class="small-button delete-saved-draft" data-index="${i}">delete</button></div>`).join('') : '<p class="empty-suggestions">No saved drafts yet.</p>';
+  savedDraftList.querySelectorAll('.load-saved-draft').forEach(button => button.addEventListener('click', () => { draftEditor.value = savedDrafts[Number(button.dataset.index)] || ''; showToast('Saved draft loaded into editor.'); }));
+  savedDraftList.querySelectorAll('.delete-saved-draft').forEach(button => button.addEventListener('click', () => { savedDrafts.splice(Number(button.dataset.index), 1); localStorage.setItem('jarvis-saved-drafts-v1', JSON.stringify(savedDrafts)); renderSavedDrafts(); }));
 }
 
 function renderContext() {
@@ -475,6 +486,13 @@ $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS uses ${state.turns.length} conversation messages and the ${state.mode} tone.`;
   showToast(reason);
 });
+saveDraftButton.addEventListener('click', () => { const value = draftEditor.value.trim(); if (!value) { showToast('Select or write a draft first.'); return; } savedDrafts.unshift(value); savedDrafts = savedDrafts.slice(0, 50); localStorage.setItem('jarvis-saved-drafts-v1', JSON.stringify(savedDrafts)); renderSavedDrafts(); showToast('Draft saved locally.'); });
+$('searchNav').addEventListener('click', () => { const q = prompt('Search your saved conversation text:'); if (!q) return; const found = state.turns.filter(turn => turn.text.toLowerCase().includes(q.toLowerCase())); showToast(found.length ? `Found ${found.length} matching message(s) in this thread.` : 'No matches in this conversation.'); });
+$('savedDraftsNav').addEventListener('click', () => { savedDraftList.scrollIntoView({ behavior: 'smooth', block: 'center' }); showToast(`${savedDrafts.length} saved draft(s)`); });
+$('workspaceNav').addEventListener('click', () => { messageStream.scrollTop = messageStream.scrollHeight; });
+$('sidebarCollapse').addEventListener('click', () => { document.querySelector('.sidebar').classList.toggle('collapsed'); });
+$('settingsButton').addEventListener('click', () => settingsDialog.showModal());
+$('clearLocalData').addEventListener('click', () => { localStorage.removeItem('jarvis-thread-v1'); localStorage.removeItem('jarvis-saved-drafts-v1'); state.turns = []; state.context = []; savedDrafts = []; draftEditor.value = ''; settingsDialog.close(); renderMessages(); renderContext(); renderSavedDrafts(); showToast('Local conversation and drafts cleared.'); });
 $('newThreadButton').addEventListener('click', () => {
   state.turns = [];
   state.context = [];
@@ -491,7 +509,7 @@ $('newThreadButton').addEventListener('click', () => {
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
-$('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
+
 
 state.suggestions = [];
 setupLiveVoice();
@@ -500,4 +518,5 @@ renderMessages();
 renderModes();
 renderSuggestions();
 renderContext();
+renderSavedDrafts();
 checkApi();
