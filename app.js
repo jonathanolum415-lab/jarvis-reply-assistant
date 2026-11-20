@@ -68,6 +68,15 @@ const liveVoicePanel = $('liveVoicePanel');
 const liveVoiceState = $('liveVoiceState');
 const stopSpeakingButton = $('stopSpeakingButton');
 const voiceCapability = $('voiceCapability');
+const mediaUrl = $('mediaUrl');
+const loadMediaButton = $('loadMediaButton');
+const mediaPlayer = $('mediaPlayer');
+const mediaStatus = $('mediaStatus');
+const sourceUrls = $('sourceUrls');
+const researchQuestion = $('researchQuestion');
+const researchButton = $('researchButton');
+const sourceStatus = $('sourceStatus');
+const sourceResults = $('sourceResults');
 const installButton = $('installButton');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
@@ -88,7 +97,9 @@ function escapeHtml(text) {
 }
 
 function escapeAttr(text) {
-  return String(text).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+  return String(text).replace(/[&<>'"]/g, character => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[character]));
 }
 
 function renderMessages() {
@@ -269,6 +280,7 @@ function speakDraft(text) {
 function handleVoiceTranscript(transcript) {
   const cleanTranscript = transcript.trim();
   if (!cleanTranscript || voiceConversationBusy) return;
+  if (handleMediaCommand(cleanTranscript)) return;
   incomingInput.value = cleanTranscript;
   state.incoming = cleanTranscript;
   renderContext();
@@ -280,6 +292,100 @@ function handleVoiceTranscript(transcript) {
       if (liveVoiceActive) beginListening();
     }
   });
+}
+
+function mediaEmbedUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtube.com')) {
+      const id = parsed.searchParams.get('v');
+      return id ? `https://www.youtube.com/embed/${encodeURIComponent(id)}?autoplay=1` : '';
+    }
+    if (parsed.hostname === 'youtu.be') return `https://www.youtube.com/embed/${encodeURIComponent(parsed.pathname.slice(1))}?autoplay=1`;
+    if (parsed.hostname.includes('vimeo.com')) {
+      const id = parsed.pathname.split('/').filter(Boolean).pop();
+      return id ? `https://player.vimeo.com/video/${encodeURIComponent(id)}?autoplay=1` : '';
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
+
+function playMedia(url = mediaUrl.value.trim()) {
+  if (!url) {
+    mediaStatus.textContent = 'paste a public media URL first';
+    mediaUrl.focus();
+    return false;
+  }
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('unsupported URL');
+    mediaUrl.value = url;
+    const embed = mediaEmbedUrl(url);
+    if (embed) {
+      mediaPlayer.innerHTML = `<iframe src="${embed}" title="JARVIS media player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      mediaStatus.textContent = 'embedded media playing · use the player controls';
+    } else if (/\.(mp3|wav|ogg|m4a|aac)(\?|#|$)/i.test(parsed.pathname + parsed.search + parsed.hash)) {
+      mediaPlayer.innerHTML = `<audio controls autoplay src="${url}"></audio>`;
+      mediaStatus.textContent = 'audio playing';
+    } else if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(parsed.pathname + parsed.search + parsed.hash)) {
+      mediaPlayer.innerHTML = `<video controls autoplay playsinline src="${url}"></video>`;
+      mediaStatus.textContent = 'video playing';
+    } else {
+      mediaPlayer.innerHTML = `<iframe src="${url}" title="JARVIS media player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+      mediaStatus.textContent = 'media loaded · if playback is blocked, open the source directly';
+    }
+    mediaPlayer.hidden = false;
+    return true;
+  } catch {
+    mediaStatus.textContent = 'use a valid public HTTP(S) media URL';
+    return false;
+  }
+}
+
+function handleMediaCommand(text) {
+  const lower = text.toLowerCase();
+  const url = text.match(/https?:\/\/[^\s]+/i)?.[0]?.replace(/[),.!?]+$/, '');
+  if (url && /\b(play|watch|open|listen)\b/.test(lower)) {
+    playMedia(url);
+    setLiveVoiceState('media', 'media request loaded · voice conversation paused');
+    showToast('Media loaded in the JARVIS dock');
+    return true;
+  }
+  if (/\b(stop|pause)\b.*\b(audio|video|media)\b/i.test(text)) {
+    mediaPlayer.querySelector('audio, video')?.pause();
+    mediaStatus.textContent = 'media paused';
+    return true;
+  }
+  return false;
+}
+
+async function researchSources() {
+  const urls = sourceUrls.value.split(/\n|,/).map(value => value.trim()).filter(Boolean).slice(0, 5);
+  if (!urls.length) {
+    sourceStatus.textContent = 'add at least one public URL';
+    sourceUrls.focus();
+    return;
+  }
+  researchButton.disabled = true;
+  sourceStatus.textContent = 'reading sources and synthesizing…';
+  sourceResults.innerHTML = '';
+  try {
+    const response = await fetch(`${API_BASE}/api/research`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls, question: researchQuestion.value.trim() })
+    });
+    const payload = await response.json();
+    if (!response.ok || payload.error) throw new Error(payload.error || 'Source research failed.');
+    sourceResults.innerHTML = `<div class="research-answer"><div class="source-result-label">JARVIS brief</div><p>${escapeHtml(payload.answer).replace(/\n/g, '<br>')}</p></div>${payload.sources.map((source, index) => `<div class="source-card"><span class="source-number">[${index + 1}]</span><div><strong>${escapeHtml(source.title)}</strong><a href="${escapeAttr(source.url)}" target="_blank" rel="noreferrer">open source ↗</a><p>${escapeHtml(source.excerpt || 'Source unavailable.')}</p></div></div>`).join('')}`;
+    sourceStatus.textContent = `${payload.sources.filter(source => source.available).length} sources read · citations ready`;
+  } catch (error) {
+    sourceStatus.textContent = error.message || 'source reader offline';
+  } finally {
+    researchButton.disabled = false;
+  }
 }
 
 function beginListening() {
@@ -421,6 +527,11 @@ stopSpeakingButton.addEventListener('click', () => {
   setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'draft audio stopped');
   if (liveVoiceActive) beginListening();
 });
+loadMediaButton.addEventListener('click', () => playMedia());
+mediaUrl.addEventListener('keydown', event => {
+  if (event.key === 'Enter') playMedia();
+});
+researchButton.addEventListener('click', researchSources);
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
   showToast(reason);

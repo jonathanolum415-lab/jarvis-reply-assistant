@@ -51,3 +51,9 @@
 - Provide an application-owned manifest with standalone display, installable icons, and mobile browser metadata.
 - Register a service worker that caches the interface shell while leaving live AI API requests online-only.
 - Expose an install action where supported and provide browser-menu fallback guidance for iOS and unsupported browsers.
+
+## [x] Deliver source intelligence and media playback
+- Accept up to five public HTTP(S) source URLs, read their text or HTML details, and synthesize a cited JARVIS brief through the managed AI service.
+- Show source excerpts and links so the user can inspect the underlying material.
+- Load direct audio/video URLs and YouTube/Vimeo links into an in-app media dock.
+- Let live voice commands containing a media URL play or pause media without sending a message.
