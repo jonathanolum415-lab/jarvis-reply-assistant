@@ -36,3 +36,8 @@
 - Serve compiled frontend assets in production mode.
 - Expose `/api/health` as the deployment health path.
 - Verify production-mode health and a real managed AI reply before deployment.
+
+## [x] Repair GitHub Pages compatibility
+- Use project-relative frontend assets under `/jarvis-reply-assistant/`.
+- Route GitHub Pages API calls to the deployed Manus backend.
+- Restrict backend CORS to the GitHub Pages and Manus app origins.

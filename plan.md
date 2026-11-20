@@ -19,6 +19,7 @@ A draft-first, JARVIS-style reply assistant for messenger conversations. The v0 
 - `server.mjs` exposes `POST /api/reply`, validates the request, sends the conversation and context to the managed OpenAI-compatible LLM endpoint using server-only credentials, and returns three draft options plus an explanation.
 - The browser calls the real API first and falls back to local demo suggestions only when the endpoint is unavailable; the approval gate remains client-side and no send action exists.
 - `Dockerfile` installs from the lockfile, builds the Vite assets, prunes development dependencies, and starts the same server in production; `/api/health` is the deployment readiness path.
+- GitHub Pages uses project-relative assets and calls the published Manus API through a hostname-specific base URL. The API accepts CORS only from the GitHub Pages origin and the Manus app origin.
 - Responsive layout collapses to a single column on narrow screens.
 - `public/manus-routes.json` declares the root route.
 

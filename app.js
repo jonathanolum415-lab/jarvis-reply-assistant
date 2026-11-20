@@ -65,6 +65,9 @@ const voiceStatus = $('voiceStatus');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
 const toast = $('toast');
+const API_BASE = window.location.hostname.endsWith('github.io')
+  ? 'https://jarvisreply-dvh8yfjn.manus.space'
+  : '';
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>'"]/g, character => ({
@@ -161,7 +164,7 @@ async function generate() {
   $('generateButton').disabled = true;
 
   try {
-    const response = await fetch('/api/reply', {
+    const response = await fetch(`${API_BASE}/api/reply`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -216,7 +219,7 @@ function simulateVoice() {
 
 async function checkApi() {
   try {
-    const response = await fetch('/api/health');
+    const response = await fetch(`${API_BASE}/api/health`);
     const payload = await response.json();
     apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
   } catch {

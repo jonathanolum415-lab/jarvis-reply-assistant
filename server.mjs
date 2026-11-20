@@ -9,6 +9,10 @@ const port = Number(process.env.PORT || 3000);
 const apiBase = (process.env.MANUS_API_URL || '').replace(/\/$/, '');
 const apiKey = process.env.MANUS_API_KEY || '';
 const maxBodyBytes = 1024 * 1024;
+const allowedOrigins = new Set([
+  'https://jonathanolum415-lab.github.io',
+  'https://jarvisreply-dvh8yfjn.manus.space'
+]);
 
 const mimeTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -161,7 +165,19 @@ async function serveStatic(req, res, pathname) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Vary', 'Origin');
+  }
   try {
+    if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
     if (url.pathname === '/api/health' && req.method === 'GET') {
       sendJson(res, 200, { ok: true, aiConfigured: Boolean(apiBase && apiKey) });
       return;
