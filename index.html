@@ -121,15 +121,6 @@
                   <span id="voiceCapability">microphone permission required</span>
                 </div>
               </div>
-              <div class="media-dock">
-                <div class="panel-label"><span>media dock</span><span class="mono">audio / video</span></div>
-                <div class="media-input-row">
-                  <input id="mediaUrl" type="url" placeholder="Paste an audio, video, YouTube, or Vimeo link..." />
-                  <button class="text-button" id="loadMediaButton">play media ↗</button>
-                </div>
-                <div class="media-player" id="mediaPlayer" hidden></div>
-                <div class="media-status" id="mediaStatus">ready for a media request</div>
-              </div>
             </div>
           </section>
 
@@ -158,15 +149,6 @@
               <div class="context-summary" id="contextSummary"></div>
               <div class="context-chips" id="contextChips"></div>
               <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">3 turns in working memory</span><span class="mono">live</span></div>
-            </div>
-
-            <div class="source-section">
-              <div class="panel-label"><span>source intelligence</span><span class="mono">up to 5 public links</span></div>
-              <textarea class="source-urls" id="sourceUrls" rows="3" placeholder="Paste article, documentation, or video URLs — one per line..."></textarea>
-              <input class="research-question" id="researchQuestion" type="text" placeholder="What should JARVIS extract?" />
-              <button class="research-button" id="researchButton">research sources <span>↗</span></button>
-              <div class="source-status" id="sourceStatus" aria-live="polite">source reader standing by</div>
-              <div class="source-results" id="sourceResults"></div>
             </div>
 
             <div class="approval-gate"><span class="gate-icon">✓</span><div><strong>approval gate engaged</strong><span>JARVIS will never send without your approval.</span></div></div>

@@ -1,7 +1,5 @@
 import http from 'node:http';
-import { lookup } from 'node:dns/promises';
 import { readFile } from 'node:fs/promises';
-import { isIP } from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -81,148 +79,6 @@ function cleanSuggestions(content) {
     suggestions: [...new Set(options)].slice(0, 3),
     explanation: explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '') : ''
   };
-}
-
-function isPrivateAddress(address) {
-  const normalized = address.toLowerCase().replace(/^\[|\]$/g, '');
-  if (normalized.startsWith('::ffff:')) {
-    const mapped = normalized.slice(7);
-    if (isIP(mapped) === 4) return isPrivateAddress(mapped);
-  }
-  if (isIP(normalized) === 4) {
-    const [first, second, third] = normalized.split('.').map(Number);
-    return first === 0 || first === 10 || first === 127 ||
-      (first === 100 && second >= 64 && second <= 127) ||
-      (first === 169 && second === 254) ||
-      (first === 172 && second >= 16 && second <= 31) ||
-      (first === 192 && second === 168) ||
-      (first === 192 && second === 0 && third === 0) ||
-      (first === 198 && (second === 18 || second === 19)) ||
-      (first === 198 && second === 51 && third === 100) ||
-      (first === 203 && second === 0 && third === 113) ||
-      first >= 224;
-  }
-  return normalized === '::' || normalized === '::1' ||
-    normalized.startsWith('fc') || normalized.startsWith('fd') ||
-    /^fe[89ab]/.test(normalized) || normalized.startsWith('ff');
-}
-
-function isSafeSourceUrl(value) {
-  try {
-    const url = new URL(value);
-    if (!['http:', 'https:'].includes(url.protocol)) return false;
-    if (url.username || url.password) return false;
-    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
-    return !(
-      host === 'localhost' || host.endsWith('.localhost') || host === 'ip6-localhost' ||
-      host === '0.0.0.0' || host.endsWith('.local') || host.endsWith('.internal')
-    );
-  } catch {
-    return false;
-  }
-}
-
-async function assertPublicSourceUrl(value) {
-  if (!isSafeSourceUrl(value)) throw new Error('Only public HTTP(S) source URLs are supported.');
-  const url = new URL(value);
-  const host = url.hostname.replace(/^\[|\]$/g, '').toLowerCase();
-  if (isIP(host)) {
-    if (isPrivateAddress(host)) throw new Error('Private or local source addresses are not allowed.');
-    return;
-  }
-  let records;
-  try {
-    records = await lookup(host, { all: true, verbatim: true });
-  } catch {
-    throw new Error('Source hostname could not be resolved.');
-  }
-  if (!records.length || records.some(record => isPrivateAddress(record.address))) {
-    throw new Error('Source hostname resolves to a private or local address.');
-  }
-}
-
-function decodeEntities(text) {
-  return text
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>');
-}
-
-function extractPageText(html) {
-  const title = decodeEntities((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] || 'Untitled source')
-    .replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 180);
-  const text = decodeEntities(html
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()).slice(0, 7000);
-  return { title: title || 'Untitled source', text };
-}
-
-async function fetchSource(url) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
-  try {
-    let currentUrl = url;
-    let response;
-    for (let redirect = 0; redirect <= 3; redirect += 1) {
-      await assertPublicSourceUrl(currentUrl);
-      response = await fetch(currentUrl, {
-        redirect: 'manual',
-        signal: controller.signal,
-        headers: { 'User-Agent': 'JARVIS-Source-Reader/1.0', Accept: 'text/html,text/plain;q=0.9,*/*;q=0.5' }
-      });
-      if (response.status < 300 || response.status >= 400) break;
-      const location = response.headers.get('location');
-      if (!location) throw new Error(`Source returned HTTP ${response.status} without a redirect target.`);
-      currentUrl = new URL(location, currentUrl).toString();
-      if (redirect === 3) throw new Error('Source redirected too many times.');
-    }
-    if (!response.ok) throw new Error(`Source returned HTTP ${response.status}.`);
-    const contentType = response.headers.get('content-type') || '';
-    if (!contentType.includes('text/') && !contentType.includes('html') && !contentType.includes('json')) {
-      throw new Error('Source is not readable text or HTML.');
-    }
-    const body = (await response.text()).slice(0, 800000);
-    const parsed = contentType.includes('html') ? extractPageText(body) : { title: url, text: body.slice(0, 7000) };
-    return { url, title: parsed.title, excerpt: parsed.text.slice(0, 420), text: parsed.text };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function researchSources(input) {
-  if (!apiBase || !apiKey) throw new Error('The managed AI service is not available to this server yet.');
-  const urls = [...new Set((Array.isArray(input.urls) ? input.urls : []).map(value => String(value).trim()).filter(Boolean))].slice(0, 5);
-  const question = String(input.question || 'What are the key details from these sources?').trim().slice(0, 500);
-  if (!urls.length) throw new Error('Add at least one public source URL.');
-  const settled = await Promise.allSettled(urls.map(fetchSource));
-  const sources = settled.map((result, index) => result.status === 'fulfilled'
-    ? result.value
-    : { url: urls[index], title: 'Source unavailable', excerpt: result.reason?.message || 'Could not read this source.', text: '' });
-  const usable = sources.filter(source => source.text);
-  if (!usable.length) throw new Error('None of the supplied sources could be read.');
-  const sourcePack = usable.map((source, index) => `SOURCE [${index + 1}]\nTITLE: ${source.title}\nURL: ${source.url}\nTEXT: ${source.text}`).join('\n\n');
-  const upstream = await fetch(`${apiBase}/v1/chat/completions`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: [
-        { role: 'system', content: 'You are JARVIS Source Intelligence. Answer only from the supplied source excerpts. Be concise, note disagreement or missing information, and cite claims with [1], [2], etc. Never claim to have accessed a source that was unavailable.' },
-        { role: 'user', content: `Research question: ${question}\n\n${sourcePack}` }
-      ]
-    })
-  });
-  const payload = await upstream.json().catch(() => ({}));
-  if (!upstream.ok || payload.error) throw new Error(payload?.error?.message || `AI service returned HTTP ${upstream.status}.`);
-  const answer = payload?.choices?.[0]?.message?.content;
-  if (typeof answer !== 'string' || !answer.trim()) throw new Error('The AI service returned no research answer.');
-  return { question, answer: answer.trim(), sources: sources.map(({ url, title, excerpt, text }) => ({ url, title, excerpt, available: Boolean(text) })) };
 }
 
 async function generateReplies(input) {
@@ -330,12 +186,6 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === '/api/reply' && req.method === 'POST') {
       const input = await readJson(req);
       const result = await generateReplies(input);
-      sendJson(res, 200, result);
-      return;
-    }
-    if (url.pathname === '/api/research' && req.method === 'POST') {
-      const input = await readJson(req);
-      const result = await researchSources(input);
       sendJson(res, 200, result);
       return;
     }

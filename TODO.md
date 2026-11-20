@@ -3,7 +3,7 @@
 ## [x] Deliver the ChatGPT-style conversation layout
 - Use a left sidebar for new chats, recent threads, workspace navigation, and the manual-paste disclosure.
 - Give the central conversation a focused ChatGPT-like message stream, model/status header, and rounded draft composer.
-- Keep JARVIS response modes, source intelligence, media playback, voice controls, context, and the approval gate available in a compact intelligence rail.
+- Keep JARVIS response modes, voice controls, context, and the approval gate available in a compact intelligence rail.
 - Collapse the rail and sidebar cleanly on smaller screens without removing the draft-first boundary.
 
 ## [x] Deliver a visible JARVIS command-center workspace
@@ -57,9 +57,3 @@
 - Provide an application-owned manifest with standalone display, installable icons, and mobile browser metadata.
 - Register a service worker that caches the interface shell while leaving live AI API requests online-only.
 - Expose an install action where supported and provide browser-menu fallback guidance for iOS and unsupported browsers.
-
-## [x] Deliver source intelligence and media playback
-- Accept up to five public HTTP(S) source URLs, read their text or HTML details, and synthesize a cited JARVIS brief through the managed AI service.
-- Show source excerpts and links so the user can inspect the underlying material.
-- Load direct audio/video URLs and YouTube/Vimeo links into an in-app media dock.
-- Let live voice commands containing a media URL play or pause media without sending a message.

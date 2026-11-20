@@ -34,23 +34,6 @@ The available response modes are Professional, Friendly, Funny, Short, Apologeti
 
 Microphone permission and browser support are controlled by the browser; the app does not upload or store a recording as a chat message.
 
-### Source intelligence
-
-The source panel accepts up to five public `http://` or `https://` URLs. The backend reads accessible HTML, text, or JSON, extracts short excerpts, and asks the managed LLM to create a concise brief with citation markers such as `[1]` and `[2]`.
-
-Each result includes the source title, excerpt, availability status, and an **open source** link. Localhost and common private-network address ranges are rejected. Sources that require login, block automated requests, or return non-readable media may be unavailable.
-
-### Media dock
-
-The media dock runs in the browser and supports:
-
-- Direct audio URLs: MP3, WAV, OGG, M4A, and AAC
-- Direct video URLs: MP4, WebM, MOV, M4V, and OGV
-- YouTube embeds
-- Vimeo embeds
-
-The browser loads the media from the supplied URL. Third-party autoplay, embedding, CORS, paywalls, and privacy settings can still prevent playback. Live voice commands containing a media URL can load it into the dock, and commands such as “pause media” pause native audio or video players.
-
 ### Installable PWA
 
 The app includes a web manifest, standalone display mode, install icons, and a service worker for the interface shell. Live AI requests still require an internet connection. Supported browsers may show an install button; other browsers can use their normal **Add to Home Screen** or **Install** menu.
@@ -60,13 +43,13 @@ The app includes a web manifest, standalone display mode, install icons, and a s
 ```text
 Browser frontend
   ├─ index.html       Interface shell and accessible controls
-  ├─ app.js           UI state, draft workflow, voice, source research, media, PWA install
+  ├─ app.js           UI state, draft workflow, voice, PWA install
   ├─ styles.css       Responsive dark command-center layout
   ├─ manifest.webmanifest / sw.js
   └─ icons/
 
 Node.js server
-  ├─ server.mjs       Static serving, CORS, API routes, source reader, LLM calls
+  ├─ server.mjs       Static serving, CORS, API routes, and LLM calls
   └─ dist/             Vite production output
 
 Managed AI service
@@ -91,10 +74,6 @@ Returns deployment health and whether managed AI credentials are configured.
 ### `POST /api/reply`
 
 Generates three draft replies from the selected mode, incoming message, visible turns, and context signals. The response includes an explanation and provider status.
-
-### `POST /api/research`
-
-Accepts a JSON body containing `urls` and an optional `question`. It reads up to five safe public sources and returns a synthesized answer plus source excerpts and availability flags.
 
 ## Local development
 
@@ -148,13 +127,11 @@ The public GitHub mirror should also be updated when the Pages frontend is inten
 
 ## Privacy and safety boundaries
 
-- Conversation text is only sent to the configured AI endpoint when the user requests a draft or research brief.
+- Conversation text is only sent to the configured AI endpoint when the user requests a draft.
 - The application is draft-first and has no automatic send capability.
 - No official WhatsApp personal-chat integration is claimed or required.
-- Source research is limited to public URLs supplied by the user.
-- Media links are loaded by the browser and remain subject to the provider's policies.
 - API credentials belong on the server and must not be committed to the repository.
 
 ## Project status
 
-This is an early version focused on a polished, installable reply workspace. It demonstrates context-aware drafting, browser voice interaction, public-source research, and browser media playback without pretending to be a privileged messenger client.
+This is an early version focused on a polished, installable reply workspace. It demonstrates context-aware drafting and browser voice interaction without pretending to be a privileged messenger client.

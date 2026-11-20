@@ -7,7 +7,7 @@ A draft-first, JARVIS-style reply assistant for messenger conversations. The v0 
 - **Movement:** cinematic command-center interface, closer to a calm spacecraft console than a generic chatbot.
 - **Principles:** conversation first; clear draft ownership; restrained motion; visible context; one electric accent.
 - **Palette:** graphite black surfaces, warm silver text, muted blue-gray panels, electric cyan for active intelligence states.
-- **Layout:** a ChatGPT-style application shell with a left conversation-history sidebar, a focused central message workspace and composer, plus a compact JARVIS intelligence rail that keeps tone, source, media, and approval controls available without competing with the chat.
+- **Layout:** a ChatGPT-style application shell with a left conversation-history sidebar, a focused central message workspace and composer, plus a compact JARVIS intelligence rail that keeps tone, context, and approval controls available without competing with the chat.
 - **Signature elements:** breathing orb, thin telemetry labels, context chips, approval gate.
 - **Interaction:** every generated reply is editable and remains a draft until the user explicitly approves it.
 - **Typography:** Space Grotesk for display and IBM Plex Mono for telemetry and system labels.
