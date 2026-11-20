@@ -1,18 +1,14 @@
-const CACHE_NAME = 'jarvis-shell-v3';
+const CACHE_NAME = 'jarvis-shell-v4';
 const APP_SHELL = ['./'];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.add('./').catch(() => undefined))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)).catch(() => undefined).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith('jarvis-shell-') && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -26,20 +22,18 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./', copy));
+          if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put('./', response.clone()));
           return response;
         })
-        .catch(() => caches.match('./'))
+        .catch(() => caches.match('./').then(cached => cached || Response.error()))
     );
     return;
   }
 
   event.respondWith(
     caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+      if (response.ok && url.pathname.startsWith(self.location.pathname.replace(/[^/]*$/, ''))) {
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
       }
       return response;
     }))
