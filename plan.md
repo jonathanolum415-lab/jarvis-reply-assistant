@@ -16,7 +16,8 @@ A draft-first, JARVIS-style reply assistant for messenger conversations. The v0 
 ## Implementation
 - Plain HTML, CSS, and JavaScript served by Vite for a lightweight, portable prototype.
 - Client-side state holds the current conversation, selected tone, generated suggestions, voice simulation phase, and context chips.
-- A deterministic local reply engine demonstrates context-aware outputs without external credentials; the generation boundary is isolated for a future LLM integration.
+- `server.mjs` exposes `POST /api/reply`, validates the request, sends the conversation and context to the managed OpenAI-compatible LLM endpoint using server-only credentials, and returns three draft options plus an explanation.
+- The browser calls the real API first and falls back to local demo suggestions only when the endpoint is unavailable; the approval gate remains client-side and no send action exists.
 - Responsive layout collapses to a single column on narrow screens.
 - `public/manus-routes.json` declares the root route.
 

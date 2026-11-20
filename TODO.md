@@ -23,3 +23,10 @@
 
 ## [x] Deliver explainability
 - Provide an explain-reply action that describes why a suggestion fits the selected tone and context.
+
+## [x] Connect a real AI reply API
+- Enable the managed server capability.
+- Expose `POST /api/reply` using the managed LLM service with server-only credentials.
+- Send the selected tone, incoming message, visible multi-turn transcript, and context signals to the model.
+- Return three usable draft replies and an explanation to the browser.
+- Keep a local fallback for service outages without weakening the draft-first approval gate.
