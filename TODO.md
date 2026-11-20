@@ -30,3 +30,9 @@
 - Send the selected tone, incoming message, visible multi-turn transcript, and context signals to the model.
 - Return three usable draft replies and an explanation to the browser.
 - Keep a local fallback for service outages without weakening the draft-first approval gate.
+
+## [x] Make the API deployment-ready
+- Build a production container from the committed lockfile and Dockerfile.
+- Serve compiled frontend assets in production mode.
+- Expose `/api/health` as the deployment health path.
+- Verify production-mode health and a real managed AI reply before deployment.

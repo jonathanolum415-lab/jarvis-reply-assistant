@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
+const staticRoot = process.env.NODE_ENV === 'production' ? path.resolve(root, 'dist') : root;
 const port = Number(process.env.PORT || 3000);
 const apiBase = (process.env.MANUS_API_URL || '').replace(/\/$/, '');
 const apiKey = process.env.MANUS_API_KEY || '';
@@ -135,9 +136,9 @@ async function generateReplies(input) {
 
 async function serveStatic(req, res, pathname) {
   const relative = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-  const candidates = [path.resolve(root, relative), path.resolve(root, 'public', relative)];
+  const candidates = [path.resolve(staticRoot, relative), path.resolve(staticRoot, 'public', relative)];
   for (const candidate of candidates) {
-    if (!candidate.startsWith(root + path.sep)) {
+    if (!candidate.startsWith(staticRoot + path.sep)) {
       res.writeHead(403);
       res.end('Forbidden');
       return;
