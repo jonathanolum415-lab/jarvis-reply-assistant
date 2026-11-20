@@ -6,9 +6,9 @@ const state = {
   explanation: '',
   suggestions: [],
   turns: [
-    { from: 'Amara', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
+    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
     { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Amara', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
+    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
   ],
   context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
 };
@@ -155,7 +155,7 @@ function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
   contextSummary.textContent = state.incoming
     ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Amara found a quiet library spot and offered to share notes.';
+    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
@@ -168,7 +168,7 @@ async function generate({ speakReply = false } = {}) {
   }
 
   state.incoming = text;
-  state.turns.push({ from: 'Amara', text, time: '18:49' });
+  state.turns.push({ from: 'Jonah', text, time: '18:49' });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   renderMessages();
   renderContext();

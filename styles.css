@@ -99,7 +99,7 @@ button { -webkit-tap-highlight-color: transparent; }
   background: rgba(17, 25, 35, .72);
 }
 .avatar { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; font-weight: 600; }
-.avatar-amar { color: var(--accent-strong); background: #1b3b43; }
+.avatar-jonah { color: var(--accent-strong); background: #1b3b43; }
 .conversation-meta strong { display: block; font-size: 13px; font-weight: 500; }
 .conversation-meta span { display: block; margin-top: 4px; color: var(--faint); font: 10px var(--mono); }
 .meta-spacer { flex: 1; }
