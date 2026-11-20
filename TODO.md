@@ -1,5 +1,11 @@
 # TODO
 
+## [x] Deliver the ChatGPT-style conversation layout
+- Use a left sidebar for new chats, recent threads, workspace navigation, and the manual-paste disclosure.
+- Give the central conversation a focused ChatGPT-like message stream, model/status header, and rounded draft composer.
+- Keep JARVIS response modes, source intelligence, media playback, voice controls, context, and the approval gate available in a compact intelligence rail.
+- Collapse the rail and sidebar cleanly on smaller screens without removing the draft-first boundary.
+
 ## [x] Deliver a visible JARVIS command-center workspace
 - Show a split interface with a conversation workspace and JARVIS response/context panel.
 - Use the confirmed cinematic dark command-center system with restrained cyan accents and subtle motion.

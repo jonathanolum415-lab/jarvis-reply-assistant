@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b1016" />
+    <meta name="theme-color" content="#212121" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -18,125 +18,163 @@
   </head>
   <body>
     <div class="app-shell">
-      <header class="topbar">
-        <div class="brand-lockup">
-          <div class="brand-mark" aria-hidden="true"><span></span></div>
-          <div>
-            <div class="brand-name">JARVIS</div>
-            <div class="brand-subtitle">reply intelligence / v0.1</div>
+      <aside class="sidebar" aria-label="Conversation history">
+        <div class="sidebar-header">
+          <div class="sidebar-brand">
+            <div class="brand-mark" aria-hidden="true"><span></span></div>
+            <div>
+              <div class="brand-name">JARVIS</div>
+              <div class="brand-subtitle">reply intelligence / v0.1</div>
+            </div>
           </div>
+          <button class="sidebar-collapse" aria-label="Collapse sidebar">‹</button>
         </div>
-        <div class="topbar-status">
-          <span class="status-dot"></span>
-          <span>draft mode active</span>
-          <button class="install-button" id="installButton" hidden>install app</button>
-          <button class="icon-button" id="settingsButton" aria-label="Open settings">⌘</button>
+
+        <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus">+</span><span>New chat</span></button>
+
+        <nav class="sidebar-nav" aria-label="Workspace navigation">
+          <button class="sidebar-nav-item active"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
+          <button class="sidebar-nav-item"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
+          <button class="sidebar-nav-item"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
+        </nav>
+
+        <div class="sidebar-section-label">Recent</div>
+        <button class="thread-item active">
+          <span class="thread-glyph">◌</span>
+          <span class="thread-copy"><strong>Study session</strong><small>Draft workspace</small></span>
+          <span class="thread-more">•••</span>
+        </button>
+        <button class="thread-item">
+          <span class="thread-glyph">◌</span>
+          <span class="thread-copy"><strong>Reply ideas</strong><small>Yesterday</small></span>
+        </button>
+
+        <div class="sidebar-spacer"></div>
+        <div class="sidebar-footer">
+          <div class="account-row"><span class="account-avatar">J</span><span><strong>Jonah</strong><small>Draft mode active</small></span><span class="account-more">•••</span></div>
+          <div class="sidebar-disclosure"><span class="status-dot"></span> Manual paste only · no live WhatsApp access</div>
         </div>
-      </header>
+      </aside>
 
-      <main class="workspace">
-        <section class="conversation-pane" aria-label="Conversation workspace">
-          <div class="section-heading conversation-heading">
-            <div>
-              <p class="eyebrow">active thread / manual context</p>
-              <h1>Jonah <span class="online-pill">online</span></h1>
-            </div>
-            <button class="quiet-button" id="newThreadButton">+ new thread</button>
+      <div class="app-main">
+        <header class="topbar">
+          <div class="topbar-title">
+            <span class="topbar-kicker">JARVIS</span>
+            <span class="topbar-divider">/</span>
+            <strong>Reply assistant</strong>
+            <button class="model-pill" aria-label="Current assistant mode">JARVIS <span>⌄</span></button>
           </div>
-
-          <div class="conversation-meta">
-            <div class="avatar avatar-jonah">J</div>
-            <div>
-              <strong>Jonah N.</strong>
-              <span>last seen just now · 3-turn context loaded</span>
-            </div>
-            <div class="meta-spacer"></div>
-            <span class="channel-label">MANUAL PASTE / WHATSAPP</span>
+          <div class="topbar-actions">
+            <div class="topbar-status"><span class="status-dot"></span><span>draft mode active</span></div>
+            <button class="install-button" id="installButton" hidden>install app</button>
+            <button class="icon-button" id="settingsButton" aria-label="Open settings">⌘</button>
           </div>
-          <p class="integration-note">Paste conversation text here · no live WhatsApp access</p>
+        </header>
 
-          <div class="message-stream" id="messageStream" aria-live="polite"></div>
+        <main class="workspace">
+          <section class="conversation-pane" aria-label="Conversation workspace">
+            <div class="section-heading conversation-heading">
+              <div>
+                <p class="eyebrow">Active conversation</p>
+                <h1>Jonah <span class="online-pill">online</span></h1>
+              </div>
+              <span class="conversation-mode">Manual context</span>
+            </div>
 
-          <div class="composer-wrap">
-            <div class="composer-label"><span class="tiny-led"></span> your message / draft input</div>
-            <div class="composer">
-              <textarea id="incomingInput" rows="3" placeholder="Paste an incoming message or use voice input..."></textarea>
-              <div class="composer-actions">
-                <div class="voice-actions">
-                  <button class="voice-button" id="voiceButton"><span class="mic-glyph">◉</span><span id="voiceLabel">simulate voice</span></button>
-                  <button class="voice-button live-voice-button" id="liveVoiceButton"><span class="mic-glyph">◎</span><span id="liveVoiceLabel">live voice</span></button>
+            <div class="conversation-meta">
+              <div class="avatar avatar-jonah">J</div>
+              <div>
+                <strong>Jonah N.</strong>
+                <span>last seen just now · 3-turn context loaded</span>
+              </div>
+              <div class="meta-spacer"></div>
+              <span class="channel-label">MANUAL PASTE / WHATSAPP</span>
+            </div>
+            <p class="integration-note">Paste conversation text here · no live WhatsApp access</p>
+
+            <div class="message-stream" id="messageStream" aria-live="polite"></div>
+
+            <div class="composer-wrap">
+              <div class="composer-label"><span class="tiny-led"></span> your message / draft input</div>
+              <div class="composer">
+                <textarea id="incomingInput" rows="3" placeholder="Paste an incoming message or use voice input..."></textarea>
+                <div class="composer-actions">
+                  <div class="voice-actions">
+                    <button class="voice-button" id="voiceButton"><span class="mic-glyph">◉</span><span id="voiceLabel">simulate voice</span></button>
+                    <button class="voice-button live-voice-button" id="liveVoiceButton"><span class="mic-glyph">◎</span><span id="liveVoiceLabel">live voice</span></button>
+                  </div>
+                  <div class="composer-right-actions">
+                    <span class="shortcut">⌘ ↵</span>
+                    <button class="primary-button" id="generateButton">generate reply <span>↗</span></button>
+                  </div>
                 </div>
-                <div class="composer-right-actions">
-                  <span class="shortcut">⌘ ↵</span>
-                  <button class="primary-button" id="generateButton">generate reply <span>↗</span></button>
+              </div>
+              <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
+              <div class="live-voice-panel" id="liveVoicePanel" hidden>
+                <div class="live-voice-heading">
+                  <div><span class="tiny-led"></span><strong>live conversation channel</strong></div>
+                  <span class="live-voice-state" id="liveVoiceState">standby</span>
+                </div>
+                <p>Speak normally. JARVIS listens, drafts, and reads back a reply for you. Nothing is sent automatically.</p>
+                <div class="live-voice-actions">
+                  <button class="text-button" id="stopSpeakingButton">stop audio</button>
+                  <span id="voiceCapability">microphone permission required</span>
                 </div>
               </div>
-            </div>
-            <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
-            <div class="live-voice-panel" id="liveVoicePanel" hidden>
-              <div class="live-voice-heading">
-                <div><span class="tiny-led"></span><strong>live conversation channel</strong></div>
-                <span class="live-voice-state" id="liveVoiceState">standby</span>
-              </div>
-              <p>Speak normally. JARVIS listens, drafts, and reads back a reply for you. Nothing is sent automatically.</p>
-              <div class="live-voice-actions">
-                <button class="text-button" id="stopSpeakingButton">stop audio</button>
-                <span id="voiceCapability">microphone permission required</span>
+              <div class="media-dock">
+                <div class="panel-label"><span>media dock</span><span class="mono">audio / video</span></div>
+                <div class="media-input-row">
+                  <input id="mediaUrl" type="url" placeholder="Paste an audio, video, YouTube, or Vimeo link..." />
+                  <button class="text-button" id="loadMediaButton">play media ↗</button>
+                </div>
+                <div class="media-player" id="mediaPlayer" hidden></div>
+                <div class="media-status" id="mediaStatus">ready for a media request</div>
               </div>
             </div>
-            <div class="media-dock">
-              <div class="panel-label"><span>media dock</span><span class="mono">audio / video</span></div>
-              <div class="media-input-row">
-                <input id="mediaUrl" type="url" placeholder="Paste an audio, video, YouTube, or Vimeo link..." />
-                <button class="text-button" id="loadMediaButton">play media ↗</button>
+          </section>
+
+          <aside class="intel-pane" aria-label="JARVIS intelligence panel">
+            <div class="intel-header">
+              <div class="orb-wrap"><div class="orb"><div class="orb-core"></div></div></div>
+              <div>
+                <p class="eyebrow">JARVIS intelligence</p>
+                <h2>Standing by<span class="blink">_</span></h2>
               </div>
-              <div class="media-player" id="mediaPlayer" hidden></div>
-              <div class="media-status" id="mediaStatus">ready for a media request</div>
+              <div class="signal-bars" aria-label="Signal strong"><i></i><i></i><i></i><i></i></div>
             </div>
-          </div>
-        </section>
 
-        <aside class="intel-pane" aria-label="JARVIS intelligence panel">
-          <div class="intel-header">
-            <div class="orb-wrap"><div class="orb"><div class="orb-core"></div></div></div>
-            <div>
-              <p class="eyebrow">JARVIS intelligence</p>
-              <h2>Standing by<span class="blink">_</span></h2>
+            <div class="mode-section">
+              <div class="panel-label"><span>response mode</span><span class="mono">01 / 07</span></div>
+              <div class="mode-grid" id="modeGrid"></div>
             </div>
-            <div class="signal-bars" aria-label="Signal strong"><i></i><i></i><i></i><i></i></div>
-          </div>
 
-          <div class="mode-section">
-            <div class="panel-label"><span>response mode</span><span class="mono">01 / 07</span></div>
-            <div class="mode-grid" id="modeGrid"></div>
-          </div>
+            <div class="suggestions-section">
+              <div class="panel-label"><span>reply suggestions</span><span class="generating-state" id="generatingState">context-aware</span></div>
+              <div class="suggestions" id="suggestions"></div>
+            </div>
 
-          <div class="suggestions-section">
-            <div class="panel-label"><span>reply suggestions</span><span class="generating-state" id="generatingState">context-aware</span></div>
-            <div class="suggestions" id="suggestions"></div>
-          </div>
+            <div class="context-section">
+              <div class="panel-label"><span>conversation context</span><button class="text-button" id="explainButton">explain reply</button></div>
+              <div class="context-summary" id="contextSummary"></div>
+              <div class="context-chips" id="contextChips"></div>
+              <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">3 turns in working memory</span><span class="mono">live</span></div>
+            </div>
 
-          <div class="context-section">
-            <div class="panel-label"><span>conversation context</span><button class="text-button" id="explainButton">explain reply</button></div>
-            <div class="context-summary" id="contextSummary"></div>
-            <div class="context-chips" id="contextChips"></div>
-            <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">3 turns in working memory</span><span class="mono">live</span></div>
-          </div>
+            <div class="source-section">
+              <div class="panel-label"><span>source intelligence</span><span class="mono">up to 5 public links</span></div>
+              <textarea class="source-urls" id="sourceUrls" rows="3" placeholder="Paste article, documentation, or video URLs — one per line..."></textarea>
+              <input class="research-question" id="researchQuestion" type="text" placeholder="What should JARVIS extract?" />
+              <button class="research-button" id="researchButton">research sources <span>↗</span></button>
+              <div class="source-status" id="sourceStatus" aria-live="polite">source reader standing by</div>
+              <div class="source-results" id="sourceResults"></div>
+            </div>
 
-          <div class="source-section">
-            <div class="panel-label"><span>source intelligence</span><span class="mono">up to 5 public links</span></div>
-            <textarea class="source-urls" id="sourceUrls" rows="3" placeholder="Paste article, documentation, or video URLs — one per line..."></textarea>
-            <input class="research-question" id="researchQuestion" type="text" placeholder="What should JARVIS extract?" />
-            <button class="research-button" id="researchButton">research sources <span>↗</span></button>
-            <div class="source-status" id="sourceStatus" aria-live="polite">source reader standing by</div>
-            <div class="source-results" id="sourceResults"></div>
-          </div>
+            <div class="approval-gate"><span class="gate-icon">✓</span><div><strong>approval gate engaged</strong><span>JARVIS will never send without your approval.</span></div></div>
+          </aside>
+        </main>
 
-          <div class="approval-gate"><span class="gate-icon">✓</span><div><strong>approval gate engaged</strong><span>JARVIS will never send without your approval.</span></div></div>
-        </aside>
-      </main>
-
-      <footer class="footer-bar"><span>private by design · draft-first</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
+        <footer class="footer-bar"><span>private by design · draft-first</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
+      </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
     <script type="module" src="./app.js"></script>

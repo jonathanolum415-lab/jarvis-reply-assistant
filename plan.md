@@ -7,7 +7,7 @@ A draft-first, JARVIS-style reply assistant for messenger conversations. The v0 
 - **Movement:** cinematic command-center interface, closer to a calm spacecraft console than a generic chatbot.
 - **Principles:** conversation first; clear draft ownership; restrained motion; visible context; one electric accent.
 - **Palette:** graphite black surfaces, warm silver text, muted blue-gray panels, electric cyan for active intelligence states.
-- **Layout:** a two-column workspace with message history and composer on the left, intelligence/context rail on the right.
+- **Layout:** a ChatGPT-style application shell with a left conversation-history sidebar, a focused central message workspace and composer, plus a compact JARVIS intelligence rail that keeps tone, source, media, and approval controls available without competing with the chat.
 - **Signature elements:** breathing orb, thin telemetry labels, context chips, approval gate.
 - **Interaction:** every generated reply is editable and remains a draft until the user explicitly approves it.
 - **Typography:** Space Grotesk for display and IBM Plex Mono for telemetry and system labels.
@@ -20,7 +20,7 @@ A draft-first, JARVIS-style reply assistant for messenger conversations. The v0 
 - The browser calls the real API first and falls back to local demo suggestions only when the endpoint is unavailable; the approval gate remains client-side and no send action exists.
 - `Dockerfile` installs from the lockfile, builds the Vite assets, prunes development dependencies, and starts the same server in production; `/api/health` is the deployment readiness path.
 - GitHub Pages uses project-relative assets and calls the published Manus API through a hostname-specific base URL. The API accepts CORS only from the GitHub Pages origin and the Manus app origin.
-- Responsive layout collapses to a single column on narrow screens.
+- Responsive layout collapses the intelligence rail below the conversation and turns the history sidebar into a compact mobile header on narrow screens.
 - `public/manus-routes.json` declares the root route.
 
 ## Project structure
