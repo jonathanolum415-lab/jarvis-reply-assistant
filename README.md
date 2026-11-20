@@ -6,7 +6,7 @@ JARVIS Reply Assistant is a draft-first AI co-pilot for messenger conversations.
 
 ## Live versions
 
-- GitHub Pages frontend: <https://jonathanolum415-lab.github.io/Jarvis-Reply-Assistant-J.R.A-/>
+- GitHub Pages frontend: <https://jonathanolum415-lab.github.io/jarvis-reply-assistant/>
 - Manus full-stack deployment: <https://jarvisreply-dvh8yfjn.manus.space>
 
 ## How it works
