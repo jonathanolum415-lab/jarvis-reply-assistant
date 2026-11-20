@@ -63,7 +63,7 @@ function escapeAttr(text) {
 }
 
 function renderMessages() {
-  try { localStorage.setItem('jarvis-thread-v1', JSON.stringify({ turns: state.turns, context: state.context })); } catch {}
+  try { localStorage.setItem('jarvis-thread-v1', JSON.stringify({ turns: state.turns.slice(-100), context: state.context.slice(0,20) })); } catch {}
   const messages = state.turns.map(turn => {
     if (turn.assistant) {
       return `
@@ -202,9 +202,10 @@ function renderSavedDrafts() {
 
 function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
-  contextSummary.textContent = state.incoming
-    ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
+  const latest = [...state.turns].reverse().find(turn => !turn.assistant)?.text || '';
+  contextSummary.textContent = latest
+    ? `Current context is based on the latest message: “${latest.slice(0, 180)}${latest.length > 180 ? '…' : ''}” and ${state.turns.length} message(s) in this thread. Add earlier messages if you want them considered.`
+    : 'No conversation context yet. Paste the incoming message or conversation text to begin.';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
