@@ -68,6 +68,7 @@ const liveVoicePanel = $('liveVoicePanel');
 const liveVoiceState = $('liveVoiceState');
 const stopSpeakingButton = $('stopSpeakingButton');
 const voiceCapability = $('voiceCapability');
+const installButton = $('installButton');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
 const toast = $('toast');
@@ -78,6 +79,7 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 let recognition = null;
 let liveVoiceActive = false;
 let voiceConversationBusy = false;
+let deferredInstallPrompt = null;
 
 function escapeHtml(text) {
   return String(text).replace(/[&<>'"]/g, character => ({
@@ -369,6 +371,41 @@ function showToast(text) {
   window.toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
 }
 
+function setupPwa() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  installButton.hidden = isStandalone;
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {
+      // The app remains fully usable when a browser blocks service workers.
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', event => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installButton.hidden = false;
+  });
+
+  installButton.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) {
+      showToast('Use your browser menu and choose Add to Home Screen');
+      return;
+    }
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === 'accepted') showToast('JARVIS is being added to your home screen');
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+    showToast('JARVIS installed — launch it from your home screen');
+  });
+}
+
 $('generateButton').addEventListener('click', generate);
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
@@ -405,6 +442,7 @@ $('settingsButton').addEventListener('click', () => showToast('Settings are rese
 
 state.suggestions = localReplySets[state.mode];
 setupLiveVoice();
+setupPwa();
 renderMessages();
 renderModes();
 renderSuggestions();

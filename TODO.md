@@ -46,3 +46,8 @@
 - Use project-relative frontend assets under `/jarvis-reply-assistant/`.
 - Route GitHub Pages API calls to the deployed Manus backend.
 - Restrict backend CORS to the GitHub Pages and Manus app origins.
+
+## [x] Deliver an installable home-screen web app
+- Provide an application-owned manifest with standalone display, installable icons, and mobile browser metadata.
+- Register a service worker that caches the interface shell while leaving live AI API requests online-only.
+- Expose an install action where supported and provide browser-menu fallback guidance for iOS and unsupported browsers.

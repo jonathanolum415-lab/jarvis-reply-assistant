@@ -69,8 +69,10 @@ button { -webkit-tap-highlight-color: transparent; }
 .brand-subtitle { margin-top: 4px; color: var(--faint); font-size: 9px; letter-spacing: .06em; }
 .topbar-status { gap: 9px; color: var(--muted); font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
 .status-dot, .tiny-led { width: 6px; height: 6px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px rgba(138, 217, 167, .7); }
-.icon-button, .quiet-button, .text-button { color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.icon-button, .quiet-button, .text-button, .install-button { color: var(--muted); background: transparent; border: 0; cursor: pointer; }
 .icon-button { width: 29px; height: 29px; margin-left: 17px; border: 1px solid var(--border); border-radius: 6px; }
+.install-button { padding: 6px 8px; color: var(--accent); border: 1px solid rgba(116, 217, 220, .38); border-radius: 4px; font: 9px var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.install-button:hover { background: rgba(116, 217, 220, .08); border-color: rgba(116, 217, 220, .7); }
 
 .workspace {
   flex: 1;
