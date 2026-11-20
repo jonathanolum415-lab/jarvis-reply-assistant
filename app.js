@@ -6,52 +6,13 @@ const state = {
   explanation: '',
   suggestions: [],
   replyPending: false,
-  turns: [
-    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
-    { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
-  ],
-  context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
+  turns: [],
+  context: []
 };
 
+try { const saved = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (saved && Array.isArray(saved.turns) && Array.isArray(saved.context)) { state.turns = saved.turns.slice(-100); state.context = saved.context.slice(0,20); } } catch {}
+
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplySets = {
-  Professional: [
-    'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-    'Perfect, thank you. Please send the notes when you have a moment, and I will meet you near the library after lunch.',
-    'Confirmed. I will be there after lunch and ready to go through the material.'
-  ],
-  Friendly: [
-    'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-    'Nice, I’m in. Send the notes whenever you can and I’ll meet you by the library after lunch.',
-    'Perfect plan. Thanks for finding a spot — see you tomorrow!'
-  ],
-  Funny: [
-    'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-    'Deal. After lunch I’ll arrive with energy, questions, and probably too much coffee.',
-    'Excellent. The library awaits our academic comeback.'
-  ],
-  Short: [
-    'Perfect, see you after lunch. Send the notes too?',
-    'I’m in. See you tomorrow near the library.',
-    'Sounds good — see you then.'
-  ],
-  Apologetic: [
-    'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-    'Apologies, I nearly missed this. The plan sounds good — I’ll meet you after lunch.',
-    'Sorry, I got caught up earlier. Thanks for organizing this; I’ll be there.'
-  ],
-  Romantic: [
-    'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-    'A quiet spot with you sounds like a pretty perfect plan. See you tomorrow.',
-    'I’m looking forward to it. Thank you for making the plan so easy.'
-  ],
-  JARVIS: [
-    'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.',
-    'Your proposal is optimal: quiet location, notes in advance, and a post-lunch rendezvous. Consider it locked.',
-    'I have aligned the schedule. Send the notes at your convenience; I will meet you near the library.'
-  ]
-};
 
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
@@ -95,6 +56,7 @@ function escapeAttr(text) {
 }
 
 function renderMessages() {
+  try { localStorage.setItem('jarvis-thread-v1', JSON.stringify({ turns: state.turns, context: state.context })); } catch {}
   const messages = state.turns.map(turn => {
     if (turn.assistant) {
       return `
@@ -165,7 +127,7 @@ function renderModes() {
   modeGrid.querySelectorAll('[data-mode]').forEach(button => {
     button.addEventListener('click', () => {
       state.mode = button.dataset.mode;
-      state.suggestions = localReplySets[state.mode];
+      state.suggestions = [];
       state.explanation = '';
       generatingState.textContent = 'ready to generate';
       renderModes();
@@ -175,7 +137,8 @@ function renderModes() {
 }
 
 function renderSuggestions() {
-  const current = state.suggestions.length ? state.suggestions : localReplySets[state.mode];
+  const current = state.suggestions;
+  if (!current.length) { suggestions.innerHTML = '<p class="empty-suggestions">Generate replies to see AI suggestions. Suggestions are unavailable offline.</p>'; return; }
   suggestions.innerHTML = current.map((text, index) => `
     <div class="suggestion-card">
       <p>${escapeHtml(text)}</p>
@@ -218,7 +181,7 @@ function renderSuggestions() {
 
   suggestions.querySelectorAll('.explain-single').forEach(button => {
     button.addEventListener('click', () => {
-      const reason = state.explanation || `This option uses the ${state.mode.toLowerCase()} tone and respects the agreed study-session timing, library location, and notes offer.`;
+      const reason = state.explanation || `This reply uses ${state.mode} tone and the current conversation context.`;
       showToast(reason);
     });
   });
@@ -241,7 +204,7 @@ async function generate({ speakReply = false } = {}) {
   }
 
   state.incoming = text;
-  state.turns.push({ from: 'Jonah', text, time: '18:49' });
+  state.turns.push({ from: 'Contact', text, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   state.replyPending = true;
   renderMessages();
@@ -251,6 +214,7 @@ async function generate({ speakReply = false } = {}) {
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
+      signal: AbortSignal.timeout(20000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -262,19 +226,19 @@ async function generate({ speakReply = false } = {}) {
     });
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
+    if (!Array.isArray(payload.suggestions) || payload.suggestions.length !== 3 || payload.suggestions.some(item => typeof item !== 'string' || !item.trim())) throw new Error('The AI returned an invalid suggestion format.');
     state.suggestions = payload.suggestions;
     state.explanation = payload.explanation || '';
-    state.turns.push({ from: 'JARVIS', text: state.suggestions[0] || 'I have a draft ready for your review.', time: 'now', assistant: true, draft: true });
+
     generatingState.textContent = 'live AI response';
     renderSuggestions();
     showToast('Live AI drafts ready — approval still required');
   } catch (error) {
-    state.suggestions = localReplySets[state.mode];
+    state.suggestions = [];
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: state.suggestions[0], time: 'now', assistant: true, draft: true });
-    generatingState.textContent = 'offline fallback';
+    generatingState.textContent = 'AI unavailable';
     renderSuggestions();
-    showToast(error.message || 'The AI endpoint is unavailable; local drafts are shown');
+    showToast(error.message || 'AI unavailable. No canned reply was substituted.');
   } finally {
     state.replyPending = false;
     renderMessages();
@@ -500,7 +464,7 @@ stopSpeakingButton.addEventListener('click', () => {
   if (liveVoiceActive) beginListening();
 });
 $('explainButton').addEventListener('click', () => {
-  const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
+  const reason = state.explanation || `JARVIS uses ${state.turns.length} conversation messages and the ${state.mode} tone.`;
   showToast(reason);
 });
 $('newThreadButton').addEventListener('click', () => {
@@ -508,7 +472,7 @@ $('newThreadButton').addEventListener('click', () => {
   state.context = [];
   state.incoming = '';
   state.replyPending = false;
-  state.suggestions = localReplySets[state.mode];
+  state.suggestions = [];
   state.explanation = '';
   incomingInput.value = '';
   renderMessages();
@@ -519,7 +483,7 @@ $('newThreadButton').addEventListener('click', () => {
 });
 $('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
 
-state.suggestions = localReplySets[state.mode];
+state.suggestions = [];
 setupLiveVoice();
 setupPwa();
 renderMessages();
