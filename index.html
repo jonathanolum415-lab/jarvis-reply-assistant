@@ -27,15 +27,15 @@
               <div class="brand-subtitle">reply intelligence / v0.1</div>
             </div>
           </div>
-          <button class="sidebar-collapse" aria-label="Collapse sidebar">‹</button>
+          <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
         </div>
 
         <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus">+</span><span>New chat</span></button>
 
         <nav class="sidebar-nav" aria-label="Workspace navigation">
-          <button class="sidebar-nav-item active"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
+          <button class="sidebar-nav-item active" id="workspaceNav"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
+          <button class="sidebar-nav-item" id="searchNav"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
+          <button class="sidebar-nav-item" id="savedDraftsNav"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
         </nav>
 
         <div class="sidebar-section-label">Recent</div>
@@ -147,6 +147,8 @@
             <div class="suggestions-section">
               <div class="panel-label"><span>alternate drafts</span><span class="generating-state" id="generatingState">context-aware</span></div>
               <div class="suggestions" id="suggestions"></div>
+              <button class="voice-button" id="saveDraftButton" type="button">save selected draft</button>
+              <div id="savedDraftList" class="saved-draft-list"></div>
             </div>
 
             <div class="context-section">
@@ -163,6 +165,7 @@
         <footer class="footer-bar"><span>private by design · draft-first</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
       </div>
     </div>
+    <dialog id="settingsDialog" class="settings-dialog"><form method="dialog"><h2>Settings</h2><p>Conversation and saved drafts are stored locally in this browser. Clear them when needed.</p><button type="button" id="clearLocalData">clear local data</button><button>close</button></form></dialog>
     <div class="toast" id="toast" role="status"></div>
     <script type="module" src="./app.js"></script>
   </body>
