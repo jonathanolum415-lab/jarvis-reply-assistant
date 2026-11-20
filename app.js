@@ -5,6 +5,7 @@ const state = {
   selectedDraft: '',
   explanation: '',
   suggestions: [],
+  replyPending: false,
   turns: [
     { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
     { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
@@ -94,14 +95,63 @@ function escapeAttr(text) {
 }
 
 function renderMessages() {
-  messageStream.innerHTML = state.turns.map(turn => `
-    <div class="message ${turn.outgoing ? 'outgoing' : ''}">
-      <div>
-        <div class="message-bubble">${escapeHtml(turn.text)}</div>
-        <div class="message-time">${escapeHtml(turn.from)} · ${escapeHtml(turn.time)}</div>
+  const messages = state.turns.map(turn => {
+    if (turn.assistant) {
+      return `
+        <div class="message assistant-message">
+          <div class="message-avatar assistant-avatar">J</div>
+          <div class="message-content">
+            <div class="message-author">JARVIS <span>${turn.draft ? 'draft reply' : 'assistant'}</span></div>
+            <div class="message-bubble">${escapeHtml(turn.text)}</div>
+            ${turn.draft ? `<div class="message-actions"><button class="inline-draft-button use-central-draft" data-text="${escapeAttr(turn.text)}">use as draft</button><button class="inline-draft-button copy-central-draft" data-text="${escapeAttr(turn.text)}">copy</button></div>` : ''}
+            <div class="message-time">${escapeHtml(turn.time)}</div>
+          </div>
+        </div>
+      `;
+    }
+    return `
+      <div class="message ${turn.outgoing ? 'outgoing' : ''}">
+        <div class="message-avatar ${turn.outgoing ? 'you-avatar' : ''}">${turn.outgoing ? 'Y' : 'J'}</div>
+        <div class="message-content">
+          <div class="message-author">${escapeHtml(turn.from)}</div>
+          <div class="message-bubble">${escapeHtml(turn.text)}</div>
+          <div class="message-time">${escapeHtml(turn.time)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  const typing = state.replyPending ? `
+    <div class="message assistant-message typing-message" aria-label="JARVIS is typing">
+      <div class="message-avatar assistant-avatar">J</div>
+      <div class="message-content">
+        <div class="message-author">JARVIS <span>thinking</span></div>
+        <div class="typing-indicator"><i></i><i></i><i></i></div>
       </div>
     </div>
-  `).join('');
+  ` : '';
+  messageStream.innerHTML = messages + typing;
+  messageStream.querySelectorAll('.use-central-draft').forEach(button => {
+    button.addEventListener('click', () => {
+      state.selectedDraft = button.dataset.text;
+      incomingInput.value = state.selectedDraft;
+      showToast('Draft loaded — review before approval');
+      button.textContent = 'draft loaded ✓';
+    });
+  });
+  messageStream.querySelectorAll('.copy-central-draft').forEach(button => {
+    button.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.text);
+        button.textContent = 'copied ✓';
+        showToast('Draft copied to clipboard');
+      } catch {
+        incomingInput.value = button.dataset.text;
+        state.selectedDraft = button.dataset.text;
+        button.textContent = 'loaded ✓';
+        showToast('Clipboard unavailable — draft loaded for manual copying');
+      }
+    });
+  });
   messageStream.scrollTop = messageStream.scrollHeight;
 }
 
@@ -193,6 +243,7 @@ async function generate({ speakReply = false } = {}) {
   state.incoming = text;
   state.turns.push({ from: 'Jonah', text, time: '18:49' });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
+  state.replyPending = true;
   renderMessages();
   renderContext();
   generatingState.textContent = 'calling managed AI…';
@@ -213,16 +264,20 @@ async function generate({ speakReply = false } = {}) {
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.suggestions = payload.suggestions;
     state.explanation = payload.explanation || '';
+    state.turns.push({ from: 'JARVIS', text: state.suggestions[0] || 'I have a draft ready for your review.', time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'live AI response';
     renderSuggestions();
     showToast('Live AI drafts ready — approval still required');
   } catch (error) {
     state.suggestions = localReplySets[state.mode];
     state.explanation = '';
+    state.turns.push({ from: 'JARVIS', text: state.suggestions[0], time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'offline fallback';
     renderSuggestions();
     showToast(error.message || 'The AI endpoint is unavailable; local drafts are shown');
   } finally {
+    state.replyPending = false;
+    renderMessages();
     $('generateButton').disabled = false;
   }
 
@@ -452,6 +507,7 @@ $('newThreadButton').addEventListener('click', () => {
   state.turns = [];
   state.context = [];
   state.incoming = '';
+  state.replyPending = false;
   state.suggestions = localReplySets[state.mode];
   state.explanation = '';
   incomingInput.value = '';
