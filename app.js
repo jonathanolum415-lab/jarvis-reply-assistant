@@ -21,6 +21,8 @@ const suggestions = $('suggestions');
 const contextChips = $('contextChips');
 const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
+const draftEditor = $('draftEditor');
+const copyEditedDraft = $('copyEditedDraft');
 const voiceButton = $('voiceButton');
 const voiceLabel = $('voiceLabel');
 const voiceStatus = $('voiceStatus');
@@ -95,8 +97,8 @@ function renderMessages() {
   messageStream.querySelectorAll('.use-central-draft').forEach(button => {
     button.addEventListener('click', () => {
       state.selectedDraft = button.dataset.text;
-      incomingInput.value = state.selectedDraft;
-      showToast('Draft loaded — review before approval');
+      draftEditor.value = state.selectedDraft;
+      showToast('Draft loaded — review and edit it below');
       button.textContent = 'draft loaded ✓';
     });
   });
@@ -171,7 +173,7 @@ function renderSuggestions() {
         button.textContent = 'copied ✓';
         showToast('Draft copied to clipboard');
       } catch {
-        incomingInput.value = text;
+        draftEditor.value = text;
         state.selectedDraft = text;
         button.textContent = 'loaded ✓';
         showToast('Clipboard unavailable — draft loaded for manual copying');
@@ -449,6 +451,12 @@ function setupPwa() {
 }
 
 $('generateButton').addEventListener('click', generate);
+copyEditedDraft.addEventListener('click', async () => {
+  const draft = draftEditor.value.trim();
+  if (!draft) { showToast('Select a reply draft to edit first.'); return; }
+  try { await navigator.clipboard.writeText(draft); showToast('Edited draft copied. Nothing was sent.'); }
+  catch { showToast('Clipboard unavailable. Select and copy the text manually.'); }
+});
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
@@ -475,6 +483,8 @@ $('newThreadButton').addEventListener('click', () => {
   state.suggestions = [];
   state.explanation = '';
   incomingInput.value = '';
+  draftEditor.value = '';
+  state.selectedDraft = '';
   renderMessages();
   renderContext();
   renderSuggestions();
