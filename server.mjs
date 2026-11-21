@@ -84,7 +84,7 @@ async function generateReplies(input) {
   const transcript = historyTurns
     .slice(-6)
     .map(turn => `${String(turn.from || 'Contact').slice(0,40)}: ${String(turn.text || '').slice(0,700)}`)
-    .join('\\n');
+    .join('\n');
   const system = [
     'You are JARVIS, a discreet reply co-pilot.',
     'Write exactly one concise, natural reply in the selected tone. Never claim to send a message or invent facts.',
