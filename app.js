@@ -238,7 +238,14 @@ function setupPwa() {
   installButton.hidden = isStandalone;
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (state.mode !== 'JARVIS' || incomingInput.value.trim() || state.replyPending) {
+        showToast('A JARVIS update is ready. Reopen it when you are ready.');
+        return;
+      }
+      window.location.reload();
+    });
+    navigator.serviceWorker.register('./sw.js', { scope: './', updateViaCache: 'none' }).catch(() => {
       // The app remains fully usable when a browser blocks service workers.
     });
   }
