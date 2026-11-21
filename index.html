@@ -88,12 +88,11 @@
             <div class="composer-wrap">
               <div class="composer-label"><span class="tiny-led"></span> incoming message</div>
               <div class="composer">
-                <textarea id="incomingInput" rows="3" placeholder="Paste an incoming message or use voice input..."></textarea>
+                <div class="composer-input-row">
+                  <textarea id="incomingInput" rows="3" placeholder="Paste or dictate an incoming message..."></textarea>
+                  <button class="dictation-button" id="voiceInputButton" type="button" aria-label="Dictate message" aria-pressed="false" title="Dictate message"><span aria-hidden="true">🎙</span></button>
+                </div>
                 <div class="composer-actions">
-                  <div class="voice-actions">
-                    <button class="voice-button" id="voiceButton"><span class="mic-glyph">◉</span><span id="voiceLabel">voice input</span></button>
-                    <button class="voice-button live-voice-button" id="liveVoiceButton"><span class="mic-glyph">◎</span><span id="liveVoiceLabel">live voice</span></button>
-                  </div>
                   <div class="composer-right-actions">
                     <span class="shortcut">⌘ ↵</span>
                     <button class="primary-button" id="generateButton">generate reply <span>↗</span></button>
@@ -101,17 +100,7 @@
                 </div>
               </div>
               <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
-              <div class="live-voice-panel" id="liveVoicePanel" hidden>
-                <div class="live-voice-heading">
-                  <div><span class="tiny-led"></span><strong>live conversation channel</strong></div>
-                  <span class="live-voice-state" id="liveVoiceState">standby</span>
-                </div>
-                <p>Speak normally. JARVIS listens and reads back a reply for you.</p>
-                <div class="live-voice-actions">
-                  <button class="text-button" id="stopSpeakingButton">stop audio</button>
-                  <span id="voiceCapability">microphone permission required</span>
-                </div>
-              </div>
+div>
             </div>
           </section>
 
@@ -140,7 +129,7 @@
           </aside>
         </main>
 
-        <footer class="footer-bar"><span>private by design · reply workspace</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
+        <footer class="footer-bar"><span>private by design · reply workspace</span><span>text and voice typing · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
       </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
