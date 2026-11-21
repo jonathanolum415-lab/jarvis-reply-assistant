@@ -27,26 +27,22 @@
               <div class="brand-subtitle">reply intelligence / v0.1</div>
             </div>
           </div>
-          <button class="sidebar-collapse" aria-label="Collapse sidebar">‹</button>
+          <button class="sidebar-collapse" id="sidebarCollapse" aria-label="Collapse sidebar" title="Collapse sidebar">‹</button>
         </div>
 
         <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus">+</span><span>New chat</span></button>
 
         <nav class="sidebar-nav" aria-label="Workspace navigation">
-          <button class="sidebar-nav-item active"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
+          <button class="sidebar-nav-item active" id="workspaceNav"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
+          <button class="sidebar-nav-item" id="searchNav"><span class="nav-glyph">⌕</span><span>Search this thread</span></button>
+          <button class="sidebar-nav-item" id="savedDraftsNav"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
         </nav>
 
-        <div class="sidebar-section-label">Recent</div>
+        <div class="sidebar-section-label">Current thread</div>
         <button class="thread-item active">
           <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Study session</strong><small>Draft workspace</small></span>
+          <span class="thread-copy"><strong>Current thread</strong><small>Local conversation</small></span>
           <span class="thread-more">•••</span>
-        </button>
-        <button class="thread-item">
-          <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Reply ideas</strong><small>Yesterday</small></span>
         </button>
 
         <div class="sidebar-spacer"></div>
@@ -109,6 +105,11 @@
                   </div>
                 </div>
               </div>
+              <div class="draft-editor-wrap">
+                <label for="draftEditor">Selected reply draft (editable)</label>
+                <textarea id="draftEditor" rows="2" placeholder="Choose a reply, then edit it here before copying."></textarea>
+                <button class="voice-button" id="copyEditedDraft" type="button">copy edited draft</button>
+              </div>
               <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
               <div class="live-voice-panel" id="liveVoicePanel" hidden>
                 <div class="live-voice-heading">
@@ -139,6 +140,12 @@
               <div class="mode-grid" id="modeGrid"></div>
             </div>
 
+            <div class="suggestions-section">
+              <div class="panel-label"><span>drafts</span><span class="generating-state">review only</span></div>
+              <button class="voice-button" id="saveDraftButton" type="button">save edited draft</button>
+              <div id="savedDraftList" class="saved-draft-list"></div>
+            </div>
+
             <div class="context-section">
               <div class="panel-label"><span>conversation context</span><button class="text-button" id="explainButton">explain reply</button></div>
               <div class="context-summary" id="contextSummary"></div>
@@ -153,6 +160,7 @@
         <footer class="footer-bar"><span>private by design · draft-first</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
       </div>
     </div>
+    <dialog id="settingsDialog" class="settings-dialog"><form method="dialog"><h2>Settings</h2><p>Conversation and saved drafts are stored locally in this browser. Clear them when needed.</p><button type="button" id="clearLocalData">clear local data</button><button>close</button></form></dialog>
     <div class="toast" id="toast" role="status"></div>
     <script type="module" src="./app.js"></script>
   </body>
