@@ -12,7 +12,9 @@ const maxBodyBytes = 32 * 1024;
 const maxMessageChars = 4000;
 const allowedOrigins = new Set([
   'https://jonathanolum415-lab.github.io',
-  'https://jarvisreply-dvh8yfjn.manus.space'
+  'https://jarvisreply-dvh8yfjn.manus.space',
+  'http://localhost:3000', 'http://127.0.0.1:3000',
+  'http://localhost:5173', 'http://127.0.0.1:5173'
 ]);
 const rateLimits = new Map();
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -63,7 +65,7 @@ async function generateReplies(input) {
   const mode=String(input.mode||'JARVIS');
   const message=typeof input.message==='string'?input.message.trim():'';
   if(!modes.has(mode)) throw Object.assign(new Error('Unknown response tone.'),{status:400});
-  if(!message||message.length>maxMessageChars) throw Object.assign(new Error(`Message must be between 1 and ${maxMessageChars} characters.),{status:400});
+  if(!message||message.length>maxMessageChars) throw Object.assign(new Error(`Message must be between 1 and ${maxMessageChars} characters.`),{status:400});
   const turns=Array.isArray(input.turns)?input.turns.slice(-12):[];
   const context=Array.isArray(input.context)?input.context.slice(0,12):[];
   const transcript=turns.filter(t=>t&&typeof t==='object'&&!t.assistant&&!t.draft).map(t=>`${String(t.from||'Contact').slice(0,40)}: ${String(t.text||'').slice(0,2000)}`).join('\n');
