@@ -84,7 +84,7 @@ function cleanReply(content) {
 
 async function generateReplies(input) {
   if (!apiBase || !apiKey) {
-    throw new Error('The managed AI service is not available to this server yet.');
+    throw Object.assign(new Error('The managed AI service is not available to this server yet.'), { status:503 });
   }
 
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('Request must be a JSON object.'), { status:400 });
