@@ -1,6 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleComposerKeydown } from '../keyboard.js';
+import { consumeComposerText, handleComposerKeydown } from '../keyboard.js';
+
+test('submitted composer text is consumed and cleared', () => {
+  const input = { value: '  Message to reply to  ' };
+  assert.equal(consumeComposerText(input), 'Message to reply to');
+  assert.equal(input.value, '');
+});
 
 test('Enter generates a reply without requiring a modifier', () => {
   let generated = 0;
