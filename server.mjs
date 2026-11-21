@@ -68,19 +68,18 @@ function rateLimit(req) {
 }
 
 function cleanReply(content) {
-  const lines = content
-    .replace(/```(?:json|text)?/gi, '')
-    .replace(/```/g, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-
+  const lines = content.trim().split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (lines[0]?.startsWith('```')) lines.shift();
+  if (lines.at(-1)?.startsWith('```')) lines.pop();
+  const text = lines.join('\n');
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed.reply === 'string' && parsed.reply.trim()) return { reply:parsed.reply.trim(), explanation:typeof parsed.explanation === 'string' ? parsed.explanation.trim() : '' };
+  } catch {}
   const explanationLine = lines.find(line => /^explanation\s*:/i.test(line));
   const replyLine = lines.find(line => /^reply\s*:/i.test(line)) || lines.find(line => !/^explanation\s*:/i.test(line));
-  return {
-    reply: replyLine?.replace(/^reply\s*:\s*/i, '').replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim() || '',
-    explanation: explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '') : ''
-  };
+  const reply = replyLine?.replace(/^reply\s*:\s*/i, '').trim() || '';
+  return { reply, explanation:explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '').trim() : '' };
 }
 
 async function generateReplies(input) {
@@ -184,7 +183,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) { res.writeHead(origin && allowedOrigins.has(origin) ? 204 : 403); res.end(); return; }
     if (url.pathname === '/api/health' && req.method === 'GET') { sendJson(res,200,{ok:true,aiConfigured:Boolean(apiBase && apiKey)}); return; }
     if (url.pathname === '/api/reply' && req.method === 'POST') {
-      if (!req.headers['content-type']?.toLowerCase().includes('application/json')) { sendJson(res,415,{error:'Content-Type must be application/json.'}); return; }
+      const contentType = req.headers['content-type'] || '';
+      if (!contentType.toLowerCase().includes('application/json')) { sendJson(res,415,{error:'Content-Type must be application/json.'}); return; }
       if (rateLimit(req)) { sendJson(res,429,{error:'Rate limit exceeded. Wait a minute and try again.'}); return; }
       const input = await readJson(req), result = await generateReplies(input);
       sendJson(res,200,result); return;
@@ -199,6 +199,4 @@ server.headersTimeout = 10_000;
 server.listen(port, '0.0.0.0', () => {
   console.log(`JARVIS server listening on 0.0.0.0:${port}`);
 });
-server.listen(port, '0.0.0.0', () => {
-  console.log(`JARVIS server listening on 0.0.0.0:${port}`);
-});
+
