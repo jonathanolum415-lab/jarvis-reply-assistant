@@ -42,7 +42,7 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     assert.ok(health?.ok, 'server starts and health endpoint responds');
     assert.equal((await health.json()).aiConfigured, true);
 
-    const origin = 'http://localhost:'+apiPort;
+    const origin = 'http://localhost:3000';
     const badMode = await fetch(baseUrl+'/api/reply', { method:'POST', headers:{Origin:origin,'Content-Type':'application/json'}, body:JSON.stringify({message:'Hello',mode:'not-a-mode'}) });
     assert.equal(badMode.status,400);
     assert.equal(badMode.headers.get('access-control-allow-origin'),origin);
