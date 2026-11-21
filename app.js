@@ -249,7 +249,7 @@ function cleanupVoiceStream() {
   voiceStatus.textContent = '';
 }
 
-function simulateVoice() {
+function startVoiceInput() {
   if (voiceRecorder?.state === 'recording' && !voiceRecordingLive) {
     voiceRecorder.stop();
     return;
@@ -320,7 +320,7 @@ function stopLiveVoice() {
   if (voiceRecordingTimer) clearTimeout(voiceRecordingTimer);
   voiceRecordingTimer = null;
   if (voiceRecorder?.state === 'recording') { voiceRecorder.stop(); }
-  cleanupVoiceStream();
+  else cleanupVoiceStream();
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
   liveVoiceLabel.textContent = 'live voice';
@@ -403,7 +403,7 @@ $('generateButton').addEventListener('click', generate);
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
-voiceButton.addEventListener('click', simulateVoice);
+voiceButton.addEventListener('click', startVoiceInput);
 liveVoiceButton.addEventListener('click', () => {
   if (liveVoiceActive) stopLiveVoice();
   else startLiveVoice();
@@ -412,7 +412,7 @@ stopSpeakingButton.addEventListener('click', () => {
   window.speechSynthesis?.cancel();
   voiceConversationBusy = false;
   setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'reply audio stopped');
-  if (liveVoiceActive) beginListening();
+  if (liveVoiceActive) startVoiceRecording({live:true});
 });
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
