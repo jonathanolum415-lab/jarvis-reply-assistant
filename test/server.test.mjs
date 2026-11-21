@@ -20,8 +20,9 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     for await (const chunk of req) body += chunk;
     const payload = JSON.parse(body);
     capturedPrompt = payload.messages?.[1]?.content || '';
+    const content = capturedPrompt.includes('legacy-format') ? 'REPLY: Legacy-style reply line one\\nreply line two\\nEXPLANATION: Legacy parser explanation' : JSON.stringify({ reply:'Test reply', explanation:'Mocked explanation' });
     res.writeHead(200, { 'Content-Type':'application/json' });
-    res.end(JSON.stringify({ choices:[{ message:{ content:JSON.stringify({ reply:'Test reply', explanation:'Mocked explanation' }) } }] }));
+    res.end(JSON.stringify({ choices:[{ message:{ content } }] }));
   });
   provider.listen(0, '127.0.0.1');
   await once(provider, 'listening');
