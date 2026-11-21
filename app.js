@@ -15,8 +15,6 @@ const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Roma
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
 const modeGrid = $('modeGrid');
-const contextChips = $('contextChips');
-const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
 const voiceInputButton = $('voiceInputButton');
 const voiceStatus = $('voiceStatus');
@@ -95,13 +93,6 @@ function renderModes() {
   });
 }
 
-function renderContext() {
-  contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
-  const latest = [...state.turns].reverse().find(turn => !turn.assistant)?.text || '';
-  contextSummary.textContent = latest ? 'Context is based on the latest message: “' + latest.slice(0,180) + (latest.length > 180 ? '…' : '') + '” and ' + state.turns.length + ' messages in this thread.' : 'No conversation context yet. Paste an incoming message to begin.';
-  $('turnCount').textContent = `${state.turns.length} turns in working memory`;
-}
-
 async function generate() {
   const text = incomingInput.value.trim();
   if (state.replyPending) { showToast('JARVIS is already generating a reply.'); return ''; }
@@ -116,7 +107,6 @@ async function generate() {
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   state.replyPending = true;
   renderMessages();
-  renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
   $('newThreadButton').disabled = true;
@@ -187,7 +177,6 @@ function setupVoiceDictation() {
       const existing = incomingInput.value.trimEnd();
       incomingInput.value = existing ? `${existing} ${finalText.trim()}` : finalText.trim();
       state.incoming = incomingInput.value;
-      renderContext();
       incomingInput.dispatchEvent(new Event('input', { bubbles: true }));
     }
     voiceStatus.textContent = interimText ? `Hearing: ${interimText}` : 'Voice text added to the message box';
@@ -294,7 +283,6 @@ $('newThreadButton').addEventListener('click', () => {
   state.explanation = '';
   incomingInput.value = '';
   renderMessages();
-  renderContext();
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
@@ -304,5 +292,4 @@ setupVoiceDictation();
 setupPwa();
 renderMessages();
 renderModes();
-renderContext();
 checkApi();
