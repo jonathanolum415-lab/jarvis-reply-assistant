@@ -114,13 +114,13 @@ async function generate() {
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(28000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message: text,
         mode: state.mode,
-        turns: state.turns.slice(-12),
+        turns: state.turns.slice(-12, -1),
         context: state.context.slice(0,12)
       })
     });
