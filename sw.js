@@ -15,10 +15,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(event.request).then(response => {
       if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put('./', response.clone()));
       return response;
-    }).catch(() => caches.match('./').then(cached => cached || Response.error())));
+    }).catch(() => caches.open(CACHE_NAME).then(cache => cache.match('./')).then(cached => cached || Response.error())));
     return;
   }
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+  event.respondWith(caches.open(CACHE_NAME).then(cache => cache.match(event.request)).then(cached => cached || fetch(event.request).then(response => {
     if (response.ok && url.pathname.startsWith(self.location.pathname.replace(/[^/]*$/, ''))) caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
     return response;
   })));
