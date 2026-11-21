@@ -1,7 +1,6 @@
 const state = {
   mode: 'JARVIS',
   incoming: '',
-  voicePhase: 'idle',
   explanation: '',
   replyPending: false,
   turns: [],
@@ -17,15 +16,8 @@ const modeGrid = $('modeGrid');
 const contextChips = $('contextChips');
 const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
-const voiceButton = $('voiceButton');
-const voiceLabel = $('voiceLabel');
+const voiceInputButton = $('voiceInputButton');
 const voiceStatus = $('voiceStatus');
-const liveVoiceButton = $('liveVoiceButton');
-const liveVoiceLabel = $('liveVoiceLabel');
-const liveVoicePanel = $('liveVoicePanel');
-const liveVoiceState = $('liveVoiceState');
-const stopSpeakingButton = $('stopSpeakingButton');
-const voiceCapability = $('voiceCapability');
 const installButton = $('installButton');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
@@ -35,8 +27,7 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   : '';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
-let liveVoiceActive = false;
-let voiceConversationBusy = false;
+let isDictating = false;
 let deferredInstallPrompt = null;
 
 function escapeHtml(text) {
@@ -108,11 +99,11 @@ function renderContext() {
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
-async function generate({ speakReply = false } = {}) {
+async function generate() {
   const text = incomingInput.value.trim();
   if (state.replyPending) { showToast('JARVIS is already generating a reply.'); return ''; }
   if (!text) {
-    showToast('Add an incoming message or use voice input first');
+    showToast('Add or dictate an incoming message first');
     incomingInput.focus();
     return '';
   }
@@ -160,198 +151,74 @@ async function generate({ speakReply = false } = {}) {
     $('newThreadButton').disabled = false;
   }
 
-  const reply = newReply;
-  if (speakReply && reply) speakReplyAloud(reply);
-  return reply;
+  return newReply;
 }
 
-let voiceRecorder = null;
-let voiceStream = null;
-let voiceChunks = [];
-let voiceRecordingLive = false;
-let voiceRecordingTimer = null;
-
-function chooseAudioMime() {
-  const options = ['audio/webm;codecs=opus','audio/webm','audio/mp4'];
-  return options.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || '';
-}
-
-async function startVoiceRecording({ live = false } = {}) {
-  if (voiceRecorder && voiceRecorder.state === 'recording') return;
-  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    voiceCapability.textContent = 'this browser does not support microphone recording';
-    setLiveVoiceState('voice unavailable', 'try a supported browser with microphone recording');
-    showToast('Microphone recording is not supported by this browser');
-    if (live) stopLiveVoice();
+function setupVoiceDictation() {
+  if (!SpeechRecognition) {
+    voiceInputButton.disabled = true;
+    voiceInputButton.title = 'Voice typing is not supported in this browser';
+    voiceStatus.textContent = 'Voice typing is unavailable here. You can use your device keyboard microphone instead.';
     return;
   }
-  try {
-    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
-    const mime = chooseAudioMime();
-    voiceChunks = [];
-    voiceRecordingLive = live;
-    voiceRecorder = mime ? new MediaRecorder(voiceStream,{mimeType:mime}) : new MediaRecorder(voiceStream);
-    voiceRecorder.ondataavailable = event => { if (event.data && event.data.size) voiceChunks.push(event.data); };
-    voiceRecorder.onerror = () => { cleanupVoiceStream(); showToast('Microphone recording failed'); setLiveVoiceState('mic error','recording failed'); };
-    voiceRecorder.onstop = async () => {
-      const wasLiveRecording = voiceRecordingLive;
-      const recordedMime = voiceRecorder?.mimeType || mime || 'audio/webm';
-      const blob = new Blob(voiceChunks,{type:recordedMime});
-      cleanupVoiceStream();
-      if (wasLiveRecording && !liveVoiceActive) return;
-      if (!blob.size) { setLiveVoiceState('no audio','No audio captured. Try again.'); if(liveVoiceActive) startVoiceRecording({live:true}); return; }
-      setLiveVoiceState('transcribing','Sending recorded audio for speech recognition');
-      try {
-        const form = new FormData();
-        const ext = recordedMime.includes('mp4') ? 'mp4' : recordedMime.includes('ogg') ? 'ogg' : 'webm';
-        form.append('audio',blob,'recording.'+ext);
-        const response = await fetch(`${API_BASE}/api/transcribe`,{method:'POST',body:form,signal:AbortSignal.timeout(35000)});
-        const result = await response.json().catch(()=>({}));
-        if (!response.ok || !result.text) throw new Error(result.error || 'Speech recognition could not transcribe this recording.');
-        handleVoiceTranscript(result.text);
-      } catch(error) {
-        setLiveVoiceState('transcription error',error.message || 'Speech transcription failed');
-        showToast(error.message || 'Voice transcription failed');
-        voiceConversationBusy = false;
-        if (liveVoiceActive) setTimeout(()=>startVoiceRecording({live:true}),500);
-      }
+  recognition = new SpeechRecognition();
+  recognition.lang = navigator.language || 'en-US';
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.onstart = () => {
+    isDictating = true;
+    voiceInputButton.classList.add('listening');
+    voiceInputButton.setAttribute('aria-pressed', 'true');
+    voiceInputButton.title = 'Stop voice typing';
+    voiceStatus.textContent = 'Listening… speak your message';
+  };
+  recognition.onresult = event => {
+    let finalText = '';
+    let interimText = '';
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const transcript = event.results[index][0].transcript;
+      if (event.results[index].isFinal) finalText += transcript;
+      else interimText += transcript;
+    }
+    if (finalText.trim()) {
+      const existing = incomingInput.value.trimEnd();
+      incomingInput.value = existing ? `${existing} ${finalText.trim()}` : finalText.trim();
+      state.incoming = incomingInput.value;
+      renderContext();
+      incomingInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    voiceStatus.textContent = interimText ? `Hearing: ${interimText}` : 'Voice text added to the message box';
+  };
+  recognition.onerror = event => {
+    const messages = {
+      'not-allowed': 'Microphone permission was denied. Allow microphone access in your browser settings.',
+      'no-speech': 'No speech detected. Tap the microphone and try again.',
+      'audio-capture': 'No microphone was found on this device.',
+      'network': 'The browser speech service is unavailable. Try again or use keyboard dictation.'
     };
-    voiceRecorder.start();
-    liveVoicePanel.hidden = false;
-    if (live) {
-      liveVoiceButton.classList.add('listening');
-      liveVoiceLabel.textContent = 'pause live voice';
-      setLiveVoiceState('listening','Listening for up to 8 seconds; speak now');
-      voiceRecordingTimer = setTimeout(()=>{ if(voiceRecorder?.state==='recording') voiceRecorder.stop(); },8000);
-    } else {
-      voiceButton.classList.add('listening');
-      voiceLabel.textContent = 'stop recording';
-      voiceStatus.textContent = 'recording · tap stop when finished speaking';
-      setLiveVoiceState('recording','Microphone recording in progress');
-    }
-  } catch(error) {
-    cleanupVoiceStream();
-    const msg = error.name === 'NotAllowedError' ? 'Microphone permission was denied. Allow access in browser settings.' : error.message || 'Unable to access the microphone.';
-    voiceCapability.textContent = msg;
-    setLiveVoiceState('mic error',msg);
-    showToast(msg);
-    if(live) stopLiveVoice();
-  }
+    voiceStatus.textContent = messages[event.error] || `Voice typing stopped: ${event.error}`;
+    if (event.error !== 'aborted') showToast(voiceStatus.textContent);
+  };
+  recognition.onend = () => {
+    isDictating = false;
+    voiceInputButton.classList.remove('listening');
+    voiceInputButton.setAttribute('aria-pressed', 'false');
+    voiceInputButton.title = 'Dictate message';
+    if (voiceStatus.textContent === 'Listening… speak your message') voiceStatus.textContent = 'Voice typing stopped';
+  };
 }
-
-function cleanupVoiceStream() {
-  if (voiceRecordingTimer) clearTimeout(voiceRecordingTimer);
-  voiceRecordingTimer = null;
-  if (voiceStream) voiceStream.getTracks().forEach(track=>track.stop());
-  voiceStream = null;
-  voiceButton.classList.remove('listening');
-  voiceLabel.textContent = 'voice input';
-  voiceStatus.textContent = '';
-}
-
-function startVoiceInput() {
-  if (voiceRecorder?.state === 'recording' && !voiceRecordingLive) {
-    voiceRecorder.stop();
+function toggleVoiceDictation() {
+  if (!recognition) {
+    showToast('Voice typing is not supported by this browser. Try your keyboard microphone.');
     return;
   }
-  startVoiceRecording({live:false});
-}
-
-function setLiveVoiceState(label, status = label) {
-  liveVoiceState.textContent = label;
-  voiceStatus.textContent = status;
-}
-
-function speakReplyAloud(text) {
-  if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
-    setLiveVoiceState('text only','speech playback is unavailable in this browser · reply shown on screen');
-    voiceConversationBusy = false;
-    if (liveVoiceActive) startVoiceRecording({live:true});
-    return;
+  if (isDictating) { recognition.stop(); return; }
+  voiceStatus.textContent = 'Starting microphone…';
+  try { recognition.start(); }
+  catch {
+    voiceStatus.textContent = 'Could not start voice typing. Tap the microphone and try again.';
+    showToast(voiceStatus.textContent);
   }
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1;
-  utterance.pitch = 0.96;
-  const chooseVoice = () => {
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => /en[-_](GB|US)/i.test(v.lang) && /natural|enhanced/i.test(v.name)) || voices.find(v => /^en[-_]/i.test(v.lang));
-    if (preferred) utterance.voice = preferred;
-  };
-  chooseVoice();
-  utterance.onstart = () => setLiveVoiceState('speaking','JARVIS is reading the reply aloud');
-  utterance.onend = () => {
-    voiceConversationBusy = false;
-    if (liveVoiceActive) startVoiceRecording({live:true});
-    else setLiveVoiceState('paused','reply read aloud');
-  };
-  utterance.onerror = event => {
-    voiceConversationBusy = false;
-    setLiveVoiceState('text only',`reply ready · speech synthesis ${event.error || 'failed'}`);
-    if (liveVoiceActive) startVoiceRecording({live:true});
-  };
-  window.speechSynthesis.speak(utterance);
-}
-
-function handleVoiceTranscript(transcript) {
-  const cleanTranscript = transcript.trim();
-  if (!cleanTranscript || voiceConversationBusy) return;
-  incomingInput.value = cleanTranscript;
-  state.incoming = cleanTranscript;
-  renderContext();
-  voiceConversationBusy = true;
-  setLiveVoiceState('thinking','Transcript captured · generating a reply');
-  generate({ speakReply: liveVoiceActive }).finally(() => {
-    if (!liveVoiceActive) voiceConversationBusy = false;
-    else if (!window.speechSynthesis?.speaking) {
-      voiceConversationBusy = false;
-      setTimeout(()=>startVoiceRecording({live:true}),500);
-    }
-  });
-}
-
-function beginListening() {
-  // Retained as a compatibility stub; microphone input uses MediaRecorder.
-}
-
-function stopLiveVoice() {
-  liveVoiceActive = false;
-  voiceConversationBusy = false;
-  if (voiceRecordingTimer) clearTimeout(voiceRecordingTimer);
-  voiceRecordingTimer = null;
-  if (voiceRecorder?.state === 'recording') { voiceRecorder.stop(); }
-  else cleanupVoiceStream();
-  window.speechSynthesis?.cancel();
-  liveVoiceButton.classList.remove('listening');
-  liveVoiceLabel.textContent = 'live voice';
-  setLiveVoiceState('paused','live voice paused · reply mode remains active');
-}
-
-function startLiveVoice() {
-  // Prime browser speech output inside the user's click gesture (mobile browsers may gate later playback).
-  if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
-    window.speechSynthesis.cancel();
-    const unlock = new SpeechSynthesisUtterance(' ');
-    unlock.volume = 0;
-    window.speechSynthesis.speak(unlock);
-  }
-  liveVoiceActive = true;
-  liveVoicePanel.hidden = false;
-  startVoiceRecording({live:true});
-}
-
-function setupLiveVoice() {
-  liveVoicePanel.hidden = true;
-  const supported = Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
-  if (!supported) {
-    liveVoiceButton.disabled = true;
-    liveVoiceLabel.textContent = 'live voice unavailable';
-    voiceButton.disabled = true;
-    voiceCapability.textContent = 'microphone recording needs a supported browser and HTTPS';
-    return;
-  }
-  voiceCapability.textContent = 'microphone ready · browser permission required';
-  if (!('speechSynthesis' in window)) voiceCapability.textContent += ' · speech output unavailable';
 }
 
 async function checkApi() {
@@ -410,17 +277,7 @@ $('generateButton').addEventListener('click', generate);
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
-voiceButton.addEventListener('click', startVoiceInput);
-liveVoiceButton.addEventListener('click', () => {
-  if (liveVoiceActive) stopLiveVoice();
-  else startLiveVoice();
-});
-stopSpeakingButton.addEventListener('click', () => {
-  window.speechSynthesis?.cancel();
-  voiceConversationBusy = false;
-  setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'reply audio stopped');
-  if (liveVoiceActive) startVoiceRecording({live:true});
-});
+voiceInputButton.addEventListener('click', toggleVoiceDictation);
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
   showToast(reason);
@@ -439,7 +296,7 @@ $('newThreadButton').addEventListener('click', () => {
 });
 
 
-setupLiveVoice();
+setupVoiceDictation();
 setupPwa();
 renderMessages();
 renderModes();
