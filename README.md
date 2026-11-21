@@ -21,6 +21,12 @@ The app never sends a WhatsApp, Messenger, SMS, or other chat message automatica
 
 ## Main features
 
+### Conversation-first workspace
+
+- Desktop keeps the conversation and bottom-pinned composer on the left, with response modes, reply explanation, collapsed context, and a review reminder in the right panel.
+- Mobile changes to one column and places the reply settings sheet above the composer.
+- The review reminder reinforces that JARVIS generates drafts only; the user decides what to send.
+
 ### Direct reply assistance
 
 The available response modes are Professional, Friendly, Funny, Short, Apologetic, Romantic, and JARVIS. Each mode shapes one direct reply, while the context panel shows the conversation summary and tracked signals used to shape it.

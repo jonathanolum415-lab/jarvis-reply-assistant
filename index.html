@@ -18,46 +18,15 @@
   </head>
   <body>
     <div class="app-shell">
-      <aside class="sidebar" aria-label="Conversation history">
-        <div class="sidebar-header">
-          <div class="sidebar-brand">
-            <div class="brand-mark" aria-hidden="true"><span></span></div>
-            <div>
-              <div class="brand-name">JARVIS</div>
-              <div class="brand-subtitle">reply intelligence / v0.1</div>
-            </div>
-          </div>
-        </div>
-
-        <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus">+</span><span>New chat</span></button>
-
-        <nav class="sidebar-nav" aria-label="Workspace navigation">
-          <div class="sidebar-nav-item active" aria-current="page"><span class="nav-glyph">⌂</span><span>Reply workspace</span></div>
-        </nav>
-
-        <div class="sidebar-section-label">Current thread</div>
-        <div class="thread-item active" aria-current="page">
-          <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Current thread</strong><small>Local conversation</small></span>
-        </div>
-
-        <div class="sidebar-spacer"></div>
-        <div class="sidebar-footer">
-          <div class="account-row"><span class="account-avatar">J</span><span><strong>Jonah</strong><small>Reply mode active</small></span><span class="account-more">•••</span></div>
-          <div class="sidebar-disclosure"><span class="status-dot"></span> Manual paste only · no live WhatsApp access</div>
-        </div>
-      </aside>
-
       <div class="app-main">
         <header class="topbar">
           <div class="topbar-title">
-            <span class="topbar-kicker">JARVIS</span>
-            <span class="topbar-divider">/</span>
-            <strong>Reply assistant</strong>
-            <button class="model-pill" aria-label="Current assistant mode">JARVIS <span>⌄</span></button>
+            <div class="brand-mark" aria-hidden="true"><span></span></div>
+            <div class="topbar-brand"><strong>JARVIS</strong><span>REPLY ASSISTANT</span></div>
           </div>
           <div class="topbar-actions">
-            <div class="topbar-status"><span class="status-dot"></span><span>reply mode active</span></div>
+            <div class="topbar-status" id="connectionStatus" data-status="connecting"><span class="status-dot"></span><span id="connectionLabel">connecting</span></div>
+            <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus" aria-hidden="true">＋</span><span>New chat</span></button>
             <button class="install-button" id="installButton" hidden>install app</button>
           </div>
         </header>
@@ -85,49 +54,57 @@
 
             <div class="message-stream" id="messageStream" aria-live="polite"></div>
 
-            <div class="composer-wrap">
-              <div class="composer-label"><span class="tiny-led"></span> incoming message</div>
-              <div class="composer">
-                <div class="composer-input-row">
-                  <textarea id="incomingInput" rows="3" placeholder="Paste or dictate an incoming message..."></textarea>
-                </div>
-                <div class="composer-actions">
-                  <div class="composer-left-actions">
-                    <button class="primary-button" id="generateButton">Enter</button>
-                  </div>
-                  <button class="dictation-button" id="voiceInputButton" type="button" aria-label="Dictate message" aria-pressed="false" title="Dictate message"><span aria-hidden="true">🎙</span></button>
-                </div>
-              </div>
-              <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
-            </div>
           </section>
 
-          <aside class="intel-pane" aria-label="JARVIS intelligence panel">
+          <aside class="intel-pane" aria-label="Reply settings and conversation context">
             <div class="intel-header">
-              <div class="orb-wrap"><div class="orb"><div class="orb-core"></div></div></div>
               <div>
-                <p class="eyebrow">JARVIS intelligence</p>
-                <h2>Standing by<span class="blink">_</span></h2>
+                <p class="eyebrow">REPLY SETTINGS</p>
+                <h2>Choose a tone</h2>
               </div>
-              <div class="signal-bars" aria-label="Signal strong"><i></i><i></i><i></i><i></i></div>
+              <span class="generating-state" id="generatingState">ready</span>
             </div>
 
             <div class="mode-section">
-              <div class="panel-label"><span>response mode</span><span class="generating-state" id="generatingState">ready</span></div>
+              <div class="panel-label"><span>response mode</span></div>
               <div class="mode-grid" id="modeGrid"></div>
             </div>
 
-            <div class="context-section">
-              <div class="panel-label"><span>conversation context</span><button class="text-button" id="explainButton">explain reply</button></div>
+            <div class="explain-section">
+              <button class="explain-button" id="explainButton">Explain this reply <span aria-hidden="true">↗</span></button>
+            </div>
+
+            <details class="context-section">
+              <summary><span>Conversation context</span><span class="context-chevron" aria-hidden="true">⌄</span></summary>
               <div class="context-summary" id="contextSummary"></div>
               <div class="context-chips" id="contextChips"></div>
-              <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">3 turns in working memory</span><span class="mono">live</span></div>
+              <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">0 turns in working memory</span></div>
+            </details>
+
+            <div class="approval-gate" role="note">
+              <span class="approval-icon" aria-hidden="true">✓</span>
+              <div><strong>Review before sending</strong><span>JARVIS never sends a message for you.</span></div>
             </div>
 
           </aside>
+
+          <div class="composer-wrap">
+            <div class="composer-label"><span class="tiny-led"></span> incoming message</div>
+            <div class="composer">
+              <div class="composer-input-row">
+                <textarea id="incomingInput" rows="3" placeholder="Paste or dictate an incoming message..."></textarea>
+              </div>
+              <div class="composer-actions">
+                <div class="composer-left-actions">
+                  <button class="primary-button" id="generateButton">Enter <span aria-hidden="true">↵</span></button>
+                </div>
+                <button class="dictation-button" id="voiceInputButton" type="button" aria-label="Dictate message" aria-pressed="false" title="Dictate message"><span aria-hidden="true">🎙</span></button>
+              </div>
+            </div>
+            <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
+          </div>
         </main>
 
-        <footer class="footer-bar"><span>private by design · reply workspace</span><span>text and voice typing · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
       </div>
     </div>
     <div class="toast" id="toast" role="status"></div>
