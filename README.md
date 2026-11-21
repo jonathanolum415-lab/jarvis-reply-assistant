@@ -42,7 +42,7 @@ Press **Enter** in the incoming-message box to generate a reply. Press **Shift+E
 
 ### Installable PWA
 
-The app includes a web manifest, standalone display mode, install icons, and a service worker for the interface shell. The service worker checks JavaScript and styles against the live files and keeps a cached copy for offline fallback. A new cache revision clears older app shells. JARVIS reloads automatically after an update when the composer is empty, no reply is in progress, and the default tone is selected; otherwise, it asks you to reopen the app when ready. Live AI requests still require an internet connection. Supported browsers may show an install button; other browsers can use their normal **Add to Home Screen** or **Install** menu.
+The app includes a web manifest, standalone display mode, install icons, and a service worker for the interface shell. The service worker pre-caches the complete app shell before activating a new cache revision, then checks JavaScript and styles against the live files. It keeps the cached shell for offline fallback and removes the previous revision only after the new files are ready. JARVIS reloads automatically after an update when the composer is empty, no reply is in progress, and the default tone is selected; otherwise, it asks you to reopen the app when ready. Live AI requests still require an internet connection. Supported browsers may show an install button; other browsers can use their normal **Add to Home Screen** or **Install** menu.
 
 ## Architecture
 
