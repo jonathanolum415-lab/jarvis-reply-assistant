@@ -8,9 +8,9 @@ const state = {
   turns: [],
   context: []
 };
-try { const stored = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (stored && Array.isArray(stored.turns) && Array.isArray(stored.context)) { state.turns = stored.turns.slice(-100); state.context = stored.context.slice(0,20); } } catch {}
+try { const stored = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (stored && Array.isArray(stored.turns) && Array.isArray(stored.context)) { state.turns = stored.turns.filter(turn => turn && typeof turn === 'object' && typeof turn.text === 'string').slice(-100); state.context = stored.context.filter(item => typeof item === 'string').slice(0,20); } } catch {}
 let savedDrafts = [];
-try { savedDrafts = JSON.parse(localStorage.getItem('jarvis-saved-drafts-v1') || '[]'); if (!Array.isArray(savedDrafts)) savedDrafts = []; } catch { savedDrafts = []; }
+try { savedDrafts = JSON.parse(localStorage.getItem('jarvis-saved-drafts-v1') || '[]'); if (!Array.isArray(savedDrafts)) savedDrafts = []; savedDrafts = savedDrafts.filter(item => typeof item === 'string').slice(0,50); } catch { savedDrafts = []; }
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
 
@@ -362,7 +362,7 @@ function setupLiveVoice() {
 
 async function checkApi() {
   try {
-    const response = await fetch(`${API_BASE}/api/health`);
+    const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(10000 });
     const payload = await response.json();
     apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
   } catch {
