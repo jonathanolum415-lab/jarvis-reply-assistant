@@ -362,7 +362,7 @@ function setupLiveVoice() {
 
 async function checkApi() {
   try {
-    const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(10000 });
+    const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(10000) });
     const payload = await response.json();
     apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
   } catch {
