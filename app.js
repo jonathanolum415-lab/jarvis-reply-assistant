@@ -1,4 +1,4 @@
-import { handleComposerKeydown } from './keyboard.js';
+import { consumeComposerText, handleComposerKeydown } from './keyboard.js';
 
 const state = {
   mode: 'JARVIS',
@@ -94,8 +94,8 @@ function renderModes() {
 }
 
 async function generate() {
-  const text = incomingInput.value.trim();
   if (state.replyPending) { showToast('JARVIS is already generating a reply.'); return ''; }
+  const text = consumeComposerText(incomingInput);
   if (!text) {
     showToast('Add or dictate an incoming message first');
     incomingInput.focus();
