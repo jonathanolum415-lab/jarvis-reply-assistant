@@ -174,6 +174,8 @@ async function generate({ speakReply = false } = {}) {
   renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
+  $('newThreadButton').disabled = true;
+  let draft = '';
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
@@ -204,9 +206,10 @@ async function generate({ speakReply = false } = {}) {
     state.replyPending = false;
     renderMessages();
     $('generateButton').disabled = false;
+    $('newThreadButton').disabled = false;
   }
 
-  let draft = '';
+
   if (speakReply && draft) speakDraft(draft);
   return draft;
 }
