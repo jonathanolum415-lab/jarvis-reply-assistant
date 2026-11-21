@@ -57,6 +57,7 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     assert.equal(success.status,200);
     assert.deepEqual(await success.json(), {reply:'Test reply',explanation:'Mocked explanation',provider:'managed-llm'});
     assert.match(capturedPrompt,/Hope you are well/);
+    assert.match(capturedPrompt,/Hope you are well\.\nContact: How are you\?/);
     assert.doesNotMatch(capturedPrompt,/fake draft/);
     assert.equal((capturedPrompt.match(/How are you\?/g) || []).length,2, 'the current message is not repeated in history');
     assert.equal(capturedMaxTokens,180);
