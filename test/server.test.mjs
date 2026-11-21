@@ -19,13 +19,6 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     let body = Buffer.alloc(0);
     for await (const chunk of req) body = Buffer.concat([body,chunk]);
     res.writeHead(200, { 'Content-Type':'application/json' });
-    if (req.url === '/v1/audio/transcriptions') {
-      const formText = body.toString('latin1');
-      assert.match(formText,/whisper-1/);
-      assert.match(formText,/sample audio bytes/);
-      res.end(JSON.stringify({text:'Hello from voice input'}));
-      return;
-    }
     const payload = JSON.parse(body.toString('utf8'));
     capturedPrompt = payload.messages?.[1]?.content || '';
     res.end(JSON.stringify({ choices:[{ message:{ content:JSON.stringify({ reply:'Test reply', explanation:'Mocked explanation' }) } }] }));
@@ -67,11 +60,8 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     const tooLong = await fetch(baseUrl+'/api/reply', { method:'POST', headers:{Origin:origin,'Content-Type':'application/json'}, body:JSON.stringify({message:'x'.repeat(4001),mode:'JARVIS'}) });
     assert.equal(tooLong.status,400);
 
-    const audioForm = new FormData();
-    audioForm.append('audio',new Blob(['sample audio bytes'],{type:'audio/webm'}),'test.webm');
-    const transcribed = await fetch(baseUrl+'/api/transcribe',{method:'POST',headers:{Origin:origin},body:audioForm});
-    assert.equal(transcribed.status,200);
-    assert.deepEqual(await transcribed.json(),{text:'Hello from voice input'});
+    const removedTranscription = await fetch(baseUrl+'/api/transcribe',{method:'POST',headers:{Origin:origin},body:'audio'});
+    assert.equal(removedTranscription.status,404);
   } finally {
     child.kill();
     await new Promise(resolve => provider.close(resolve));
@@ -79,10 +69,14 @@ test('reply API health, validation, CORS, and mocked provider response', async (
 });
 
 
-test('live voice frontend uses real recording and no removed settings element', async () => {
-  const source = await (await import('node:fs/promises')).readFile(new URL('../app.js',import.meta.url),'utf8');
-  assert.match(source,/navigator\.mediaDevices\?\.getUserMedia/);
-  assert.match(source,/new MediaRecorder/);
-  assert.doesNotMatch(source,/simulate voice|That sounds great\. Tomorrow after lunch/);
-  assert.doesNotMatch(source,/\$\('settingsButton'\)\.addEventListener/);
+test('voice dictation uses browser speech recognition only', async () => {
+  const fs = await import('node:fs/promises');
+  const source = await fs.readFile(new URL('../app.js',import.meta.url),'utf8');
+  const html = await fs.readFile(new URL('../index.html',import.meta.url),'utf8');
+  assert.match(source,/window\.SpeechRecognition \|\| window\.webkitSpeechRecognition/);
+  assert.match(source,/recognition\.onresult/);
+  assert.match(source,/voiceInputButton\.addEventListener\('click', toggleVoiceDictation\)/);
+  assert.doesNotMatch(source,/MediaRecorder|getUserMedia|speechSynthesis|api\/transcribe|liveVoice/);
+  assert.match(html,/id="voiceInputButton"/);
+  assert.doesNotMatch(html,/liveVoiceButton|liveVoicePanel|stopSpeakingButton/);
 });
