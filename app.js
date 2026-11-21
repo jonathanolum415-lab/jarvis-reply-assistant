@@ -5,24 +5,14 @@ const state = {
   selectedDraft: '',
   explanation: '',
   replyPending: false,
-  turns: [
-    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
-    { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
-  ],
-  context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
+  turns: [],
+  context: []
 };
+try { const stored = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (stored && Array.isArray(stored.turns) && Array.isArray(stored.context)) { state.turns = stored.turns.slice(-100); state.context = stored.context.slice(0,20); } } catch {}
+let savedDrafts = [];
+try { savedDrafts = JSON.parse(localStorage.getItem('jarvis-saved-drafts-v1') || '[]'); if (!Array.isArray(savedDrafts)) savedDrafts = []; } catch { savedDrafts = []; }
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplies = {
-  Professional: 'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-  Friendly: 'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-  Funny: 'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-  Short: 'Perfect, see you after lunch. Send the notes too?',
-  Apologetic: 'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-  Romantic: 'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-  JARVIS: 'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.'
-};
 
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
@@ -30,6 +20,11 @@ const modeGrid = $('modeGrid');
 const contextChips = $('contextChips');
 const contextSummary = $('contextSummary');
 const incomingInput = $('incomingInput');
+const draftEditor = $('draftEditor');
+const copyEditedDraft = $('copyEditedDraft');
+const saveDraftButton = $('saveDraftButton');
+const savedDraftList = $('savedDraftList');
+const settingsDialog = $('settingsDialog');
 const voiceButton = $('voiceButton');
 const voiceLabel = $('voiceLabel');
 const voiceStatus = $('voiceStatus');
@@ -65,6 +60,7 @@ function escapeAttr(text) {
 }
 
 function renderMessages() {
+  try { localStorage.setItem('jarvis-thread-v1', JSON.stringify({ turns:state.turns.slice(-100), context:state.context.slice(0,20) })); } catch {}
   const messages = state.turns.map(turn => {
     if (turn.assistant) {
       return `
@@ -103,8 +99,8 @@ function renderMessages() {
   messageStream.querySelectorAll('.use-central-draft').forEach(button => {
     button.addEventListener('click', () => {
       state.selectedDraft = button.dataset.text;
-      incomingInput.value = state.selectedDraft;
-      showToast('Draft loaded — review before approval');
+      draftEditor.value = state.selectedDraft;
+      showToast('Draft loaded — review and edit it below');
       button.textContent = 'draft loaded ✓';
     });
   });
@@ -115,7 +111,7 @@ function renderMessages() {
         button.textContent = 'copied ✓';
         showToast('Draft copied to clipboard');
       } catch {
-        incomingInput.value = button.dataset.text;
+        draftEditor.value = button.dataset.text;
         state.selectedDraft = button.dataset.text;
         button.textContent = 'loaded ✓';
         showToast('Clipboard unavailable — draft loaded for manual copying');
@@ -142,16 +138,28 @@ function renderModes() {
   });
 }
 
+function renderSavedDrafts() {
+  savedDraftList.replaceChildren();
+  if (!savedDrafts.length) { const empty = document.createElement('p'); empty.className = 'empty-suggestions'; empty.textContent = 'No saved drafts yet.'; savedDraftList.append(empty); return; }
+  savedDrafts.forEach((draft,index) => {
+    const item = document.createElement('div'); item.className = 'saved-draft-item';
+    const text = document.createElement('span'); text.textContent = draft.slice(0,80);
+    const load = document.createElement('button'); load.className = 'small-button'; load.textContent = 'load'; load.addEventListener('click', () => { draftEditor.value = draft; showToast('Draft loaded into editor.'); });
+    const remove = document.createElement('button'); remove.className = 'small-button'; remove.textContent = 'delete'; remove.addEventListener('click', () => { savedDrafts.splice(index,1); localStorage.setItem('jarvis-saved-drafts-v1',JSON.stringify(savedDrafts)); renderSavedDrafts(); });
+    item.append(text,load,remove); savedDraftList.append(item);
+  });
+}
+
 function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
-  contextSummary.textContent = state.incoming
-    ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
+  const latest = [...state.turns].reverse().find(turn => !turn.assistant)?.text || '';
+  contextSummary.textContent = latest ? 'Current context uses the latest message: “' + latest.slice(0,180) + (latest.length > 180 ? '…' : '') + '” and ' + state.turns.length + ' messages in this thread.' : 'No conversation context yet. Paste the incoming message or conversation text to begin';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
 async function generate({ speakReply = false } = {}) {
   const text = incomingInput.value.trim();
+  if (state.replyPending) { showToast('JARVIS is already generating a reply.'); return ''; }
   if (!text) {
     showToast('Add an incoming message or use voice input first');
     incomingInput.focus();
@@ -159,7 +167,7 @@ async function generate({ speakReply = false } = {}) {
   }
 
   state.incoming = text;
-  state.turns.push({ from: 'Jonah', text, time: '18:49' });
+  state.turns.push({ from: 'Contact', text, time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   state.replyPending = true;
   renderMessages();
@@ -169,6 +177,7 @@ async function generate({ speakReply = false } = {}) {
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
+      signal: AbortSignal.timeout(20000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -181,15 +190,15 @@ async function generate({ speakReply = false } = {}) {
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.explanation = payload.explanation || '';
-    const reply = payload.reply || 'I have a draft ready for your review.';
+    if (typeof payload.reply !== 'string' || !payload.reply.trim()) throw new Error('The AI returned an invalid reply.');
+    const reply = payload.reply.trim();
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready — approval still required');
   } catch (error) {
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true, draft: true });
-    generatingState.textContent = 'offline fallback';
-    showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
+    generatingState.textContent = 'AI unavailable';
+    showToast(error.message || 'AI unavailable. No canned reply was substituted.');
   } finally {
     state.replyPending = false;
     renderMessages();
@@ -400,6 +409,14 @@ function setupPwa() {
 }
 
 $('generateButton').addEventListener('click', generate);
+copyEditedDraft.addEventListener('click', async () => { const text = draftEditor.value.trim(); if (!text) { showToast('Write or load a draft first.'); return; } try { await navigator.clipboard.writeText(text); showToast('Edited draft copied. Nothing was sent.'); } catch { showToast('Clipboard unavailable — select and copy manually.'); } });
+saveDraftButton.addEventListener('click', () => { const text = draftEditor.value.trim(); if (!text) { showToast('Write or load a draft first.'); return; } savedDrafts.unshift(text); savedDrafts = savedDrafts.slice(0,50); localStorage.setItem('jarvis-saved-drafts-v1',JSON.stringify(savedDrafts)); renderSavedDrafts(); showToast('Draft saved locally.'); });
+$('searchNav').addEventListener('click', () => { const q = prompt('Search this thread:'); if (!q) return; const matches = state.turns.filter(turn => String(turn.text || '').toLowerCase().includes(q.toLowerCase())); showToast(matches.length ? 'Found ' + matches.length + ' matching message(s).' : 'No matches.'); });
+$('savedDraftsNav').addEventListener('click', () => savedDraftList.scrollIntoView({behavior:'smooth',block:'center'}));
+$('workspaceNav').addEventListener('click', () => { messageStream.scrollTop = messageStream.scrollHeight; });
+$('sidebarCollapse').addEventListener('click', () => document.querySelector('.sidebar').classList.toggle('collapsed'));
+$('clearLocalData').addEventListener('click', () => { localStorage.removeItem('jarvis-thread-v1'); localStorage.removeItem('jarvis-saved-drafts-v1'); state.turns=[]; state.context=[]; savedDrafts=[]; draftEditor.value=''; incomingInput.value=''; settingsDialog.close(); renderMessages(); renderContext(); renderSavedDrafts(); showToast('Local data cleared.'); });
+
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
@@ -425,16 +442,19 @@ $('newThreadButton').addEventListener('click', () => {
   state.replyPending = false;
   state.explanation = '';
   incomingInput.value = '';
+  draftEditor.value = '';
+  state.selectedDraft = '';
   renderMessages();
   renderContext();
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
-$('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
+$('settingsButton').addEventListener('click', () => settingsDialog.showModal());
 
 setupLiveVoice();
 setupPwa();
 renderMessages();
 renderModes();
 renderContext();
+renderSavedDrafts();
 checkApi();
