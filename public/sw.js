@@ -1,10 +1,21 @@
-const CACHE_NAME = 'jarvis-shell-v6';
-const APP_SHELL = ['./'];
+const CACHE_NAME = 'jarvis-shell-v7';
+const APP_SHELL = [
+  './',
+  './app.js',
+  './keyboard.js',
+  './styles.css',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.add('./').catch(() => undefined))
+      .then(cache => cache.addAll(APP_SHELL).catch(async error => {
+        await caches.delete(CACHE_NAME);
+        throw error;
+      }))
       .then(() => self.skipWaiting())
   );
 });
@@ -31,6 +42,25 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.open(CACHE_NAME).then(cache => cache.match('./')))
+    );
+    return;
+  }
+
+  if (event.request.destination === 'script' || event.request.destination === 'style') {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(event.request);
+        try {
+          const response = await fetch(event.request, { cache: 'no-cache' });
+          if (response.ok) {
+            await cache.put(event.request, response.clone());
+            return response;
+          }
+          return cached || response;
+        } catch {
+          return cached || Response.error();
+        }
+      })
     );
     return;
   }
