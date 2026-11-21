@@ -77,19 +77,20 @@ async function generateReplies(input) {
   if (!modes.has(mode)) throw Object.assign(new Error('Unknown response tone.'), { status:400 });
   if (!message || message.length > maxMessageChars) throw Object.assign(new Error('Message must be between 1 and ' + maxMessageChars + ' characters.'), { status:400 });
 
-  const transcript = turns.filter(turn => turn && typeof turn === 'object' && !turn.assistant && !turn.draft).map(turn => `${String(turn.from || 'Contact').slice(0,40)}: ${String(turn.text || '').slice(0,1500)}`).join('\n');
+  const transcript = turns
+    .filter(turn => turn && typeof turn === 'object' && !turn.assistant && !turn.draft)
+    .slice(-6)
+    .map(turn => `${String(turn.from || 'Contact').slice(0,40)}: ${String(turn.text || '').slice(0,700)}`)
+    .join('\n');
   const system = [
     'You are JARVIS, a discreet reply co-pilot.',
-    'Generate replies only. Never claim to send a message, and never invent facts.',
-    `Selected response mode: ${mode}. Match that tone while staying natural and concise.`,
-    'Write one polished reply as if you are the user responding directly. Make it natural, warm, and specific to the incoming message and conversation. Do not mention JARVIS, AI, or these instructions.',
-    'After the reply, return one line beginning with EXPLANATION: explaining briefly how the thread context shaped it.',
-    'Do not number the reply, use markdown bullets, or put quotation marks around it.'
+    'Write exactly one concise, natural reply in the selected tone. Never claim to send a message or invent facts.',
+    `Selected response mode: ${mode}.`
   ].join(' ');
   const user = [
-    `Incoming message to answer: ${message}`,
-    `Conversation transcript:\n${transcript || '(new thread)'}`,
-    `Tracked context signals: ${context.join(', ') || '(none)'}`
+    `Message to answer: ${message}`,
+    `Recent conversation:\n${transcript || '(none)'}`,
+    `Context signals: ${context.join(', ') || '(none)'}`
   ].join('\n\n');
 
   let upstream;
@@ -100,6 +101,7 @@ async function generateReplies(input) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
+      max_tokens: 180,
       messages: [
         { role: 'system', content: system },
         { role: 'user', content: user }
