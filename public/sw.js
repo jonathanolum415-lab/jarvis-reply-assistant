@@ -1,9 +1,21 @@
 const CACHE_NAME = 'jarvis-shell-v7';
+const APP_SHELL = [
+  './',
+  './app.js',
+  './keyboard.js',
+  './styles.css',
+  './manifest.webmanifest',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.add('./').catch(() => undefined))
+      .then(cache => cache.addAll(APP_SHELL).catch(async error => {
+        await caches.delete(CACHE_NAME);
+        throw error;
+      }))
       .then(() => self.skipWaiting())
   );
 });
