@@ -4,24 +4,12 @@ const state = {
   voicePhase: 'idle',
   explanation: '',
   replyPending: false,
-  turns: [
-    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
-    { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
-  ],
-  context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
+  turns: [],
+  context: []
 };
+try { const stored = JSON.parse(localStorage.getItem('jarvis-thread-v1') || 'null'); if (stored && Array.isArray(stored.turns) && Array.isArray(stored.context)) { state.turns = stored.turns.filter(turn => turn && typeof turn === 'object' && typeof turn.text === 'string').slice(-100); state.context = stored.context.filter(item => typeof item === 'string').slice(0,20); } } catch {}
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplies = {
-  Professional: 'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-  Friendly: 'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-  Funny: 'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-  Short: 'Perfect, see you after lunch. Send the notes too?',
-  Apologetic: 'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-  Romantic: 'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-  JARVIS: 'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.'
-};
 
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
@@ -58,6 +46,7 @@ function escapeHtml(text) {
 }
 
 function renderMessages() {
+  try { localStorage.setItem('jarvis-thread-v1', JSON.stringify({ turns:state.turns.slice(-100), context:state.context.slice(0,20) })); } catch {}
   const messages = state.turns.map(turn => {
     if (turn.assistant) {
       return `
@@ -114,14 +103,14 @@ function renderModes() {
 
 function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
-  contextSummary.textContent = state.incoming
-    ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
+  const latest = [...state.turns].reverse().find(turn => !turn.assistant)?.text || '';
+  contextSummary.textContent = latest ? 'Context is based on the latest message: “' + latest.slice(0,180) + (latest.length > 180 ? '…' : '') + '” and ' + state.turns.length + ' messages in this thread.' : 'No conversation context yet. Paste an incoming message to begin.';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
 async function generate({ speakReply = false } = {}) {
   const text = incomingInput.value.trim();
+  if (state.replyPending) { showToast('JARVIS is already generating a reply.'); return ''; }
   if (!text) {
     showToast('Add an incoming message or use voice input first');
     incomingInput.focus();
@@ -129,16 +118,19 @@ async function generate({ speakReply = false } = {}) {
   }
 
   state.incoming = text;
-  state.turns.push({ from: 'Jonah', text, time: '18:49' });
+  state.turns.push({ from: 'Contact', text, time: new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   state.replyPending = true;
   renderMessages();
   renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
+  $('newThreadButton').disabled = true;
+  let newReply = '';
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
+      signal: AbortSignal.timeout(20000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -151,22 +143,24 @@ async function generate({ speakReply = false } = {}) {
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.explanation = payload.explanation || '';
-    const reply = payload.reply || 'I have a reply ready.';
+    if (typeof payload.reply !== 'string' || !payload.reply.trim()) throw new Error('The AI returned an invalid reply.');
+    const reply = payload.reply.trim();
+    newReply = reply;
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready');
   } catch (error) {
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true });
-    generatingState.textContent = 'offline fallback';
-    showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
+    generatingState.textContent = 'AI unavailable';
+    showToast(error.message || 'AI unavailable. No fake reply was substituted.');
   } finally {
     state.replyPending = false;
     renderMessages();
     $('generateButton').disabled = false;
+    $('newThreadButton').disabled = false;
   }
 
-  const reply = state.turns.findLast(turn => turn.assistant)?.text || '';
+  const reply = newReply;
   if (speakReply && reply) speakReplyAloud(reply);
   return reply;
 }
@@ -319,7 +313,7 @@ function setupLiveVoice() {
 
 async function checkApi() {
   try {
-    const response = await fetch(`${API_BASE}/api/health`);
+    const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(10000) });
     const payload = await response.json();
     apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
   } catch {
