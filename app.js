@@ -2,7 +2,6 @@ const state = {
   mode: 'JARVIS',
   incoming: '',
   voicePhase: 'idle',
-  selectedDraft: '',
   explanation: '',
   replyPending: false,
   turns: [
@@ -58,12 +57,6 @@ function escapeHtml(text) {
   }[character]));
 }
 
-function escapeAttr(text) {
-  return String(text).replace(/[&<>'"]/g, character => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-  }[character]));
-}
-
 function renderMessages() {
   const messages = state.turns.map(turn => {
     if (turn.assistant) {
@@ -71,9 +64,8 @@ function renderMessages() {
         <div class="message assistant-message">
           <div class="message-avatar assistant-avatar">J</div>
           <div class="message-content">
-            <div class="message-author">JARVIS <span>${turn.draft ? 'draft reply' : 'assistant'}</span></div>
+            <div class="message-author">JARVIS <span>assistant</span></div>
             <div class="message-bubble">${escapeHtml(turn.text)}</div>
-            ${turn.draft ? `<div class="message-actions"><button class="inline-draft-button use-central-draft" data-text="${escapeAttr(turn.text)}">use as draft</button><button class="inline-draft-button copy-central-draft" data-text="${escapeAttr(turn.text)}">copy</button></div>` : ''}
             <div class="message-time">${escapeHtml(turn.time)}</div>
           </div>
         </div>
@@ -100,28 +92,6 @@ function renderMessages() {
     </div>
   ` : '';
   messageStream.innerHTML = messages + typing;
-  messageStream.querySelectorAll('.use-central-draft').forEach(button => {
-    button.addEventListener('click', () => {
-      state.selectedDraft = button.dataset.text;
-      incomingInput.value = state.selectedDraft;
-      showToast('Draft loaded — review before approval');
-      button.textContent = 'draft loaded ✓';
-    });
-  });
-  messageStream.querySelectorAll('.copy-central-draft').forEach(button => {
-    button.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(button.dataset.text);
-        button.textContent = 'copied ✓';
-        showToast('Draft copied to clipboard');
-      } catch {
-        incomingInput.value = button.dataset.text;
-        state.selectedDraft = button.dataset.text;
-        button.textContent = 'loaded ✓';
-        showToast('Clipboard unavailable — draft loaded for manual copying');
-      }
-    });
-  });
   messageStream.scrollTop = messageStream.scrollHeight;
 }
 
@@ -181,13 +151,13 @@ async function generate({ speakReply = false } = {}) {
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.explanation = payload.explanation || '';
-    const reply = payload.reply || 'I have a draft ready for your review.';
-    state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true, draft: true });
+    const reply = payload.reply || 'I have a reply ready.';
+    state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
     generatingState.textContent = 'live AI response';
-    showToast('JARVIS reply ready — approval still required');
+    showToast('JARVIS reply ready');
   } catch (error) {
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true, draft: true });
+    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true });
     generatingState.textContent = 'offline fallback';
     showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
   } finally {
@@ -196,9 +166,9 @@ async function generate({ speakReply = false } = {}) {
     $('generateButton').disabled = false;
   }
 
-  const draft = state.turns.findLast(turn => turn.assistant)?.text || '';
-  if (speakReply && draft) speakDraft(draft);
-  return draft;
+  const reply = state.turns.findLast(turn => turn.assistant)?.text || '';
+  if (speakReply && reply) speakReplyAloud(reply);
+  return reply;
 }
 
 function simulateVoice() {
@@ -231,9 +201,9 @@ function setLiveVoiceState(label, status = label) {
   voiceStatus.textContent = status;
 }
 
-function speakDraft(text) {
+function speakReplyAloud(text) {
   if (!('speechSynthesis' in window)) {
-    setLiveVoiceState('text only', 'browser speech output is unavailable · draft ready for review');
+    setLiveVoiceState('text only', 'browser speech output is unavailable · reply ready');
     voiceConversationBusy = false;
     if (liveVoiceActive) beginListening();
     return;
@@ -245,15 +215,15 @@ function speakDraft(text) {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.rate = 1.02;
   utterance.pitch = .95;
-  utterance.onstart = () => setLiveVoiceState('speaking', 'JARVIS is reading the draft aloud');
+  utterance.onstart = () => setLiveVoiceState('speaking', 'JARVIS is reading the reply aloud');
   utterance.onend = () => {
     voiceConversationBusy = false;
     if (liveVoiceActive) beginListening();
-    else setLiveVoiceState('paused', 'draft read aloud · nothing was sent');
+    else setLiveVoiceState('paused', 'reply read aloud');
   };
   utterance.onerror = () => {
     voiceConversationBusy = false;
-    setLiveVoiceState('text only', 'draft ready · speech output was interrupted');
+    setLiveVoiceState('text only', 'reply ready · speech output was interrupted');
     if (liveVoiceActive) beginListening();
   };
   window.speechSynthesis.speak(utterance);
@@ -266,7 +236,7 @@ function handleVoiceTranscript(transcript) {
   state.incoming = cleanTranscript;
   renderContext();
   voiceConversationBusy = true;
-  setLiveVoiceState('thinking', 'transcript captured · asking managed AI for a draft');
+  setLiveVoiceState('thinking', 'transcript captured · asking managed AI for a reply');
   generate({ speakReply: true }).finally(() => {
     if (!('speechSynthesis' in window) || !window.speechSynthesis.speaking) {
       voiceConversationBusy = false;
@@ -293,7 +263,7 @@ function stopLiveVoice() {
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
   liveVoiceLabel.textContent = 'live voice';
-  setLiveVoiceState('paused', 'live voice paused · draft mode remains active');
+  setLiveVoiceState('paused', 'live voice paused · reply mode remains active');
 }
 
 function startLiveVoice() {
@@ -411,7 +381,7 @@ liveVoiceButton.addEventListener('click', () => {
 stopSpeakingButton.addEventListener('click', () => {
   window.speechSynthesis?.cancel();
   voiceConversationBusy = false;
-  setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'draft audio stopped');
+  setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'reply audio stopped');
   if (liveVoiceActive) beginListening();
 });
 $('explainButton').addEventListener('click', () => {

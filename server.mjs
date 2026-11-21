@@ -94,9 +94,9 @@ async function generateReplies(input) {
   const transcript = turns.map(turn => `${turn.from || 'Contact'}: ${turn.text || ''}`).join('\n');
   const system = [
     'You are JARVIS, a discreet reply co-pilot.',
-    'Draft replies only. Never claim to send a message, and never invent facts.',
+    'Generate replies only. Never claim to send a message, and never invent facts.',
     `Selected response mode: ${mode}. Match that tone while staying natural and concise.`,
-    'Write one polished reply as if you are the user responding directly. Make it natural, warm, and specific to the incoming message and conversation. Do not mention JARVIS, AI, drafting, or these instructions.',
+    'Write one polished reply as if you are the user responding directly. Make it natural, warm, and specific to the incoming message and conversation. Do not mention JARVIS, AI, or these instructions.',
     'After the reply, return one line beginning with EXPLANATION: explaining briefly how the thread context shaped it.',
     'Do not number the reply, use markdown bullets, or put quotation marks around it.'
   ].join(' ');

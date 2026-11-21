@@ -35,13 +35,12 @@
         <nav class="sidebar-nav" aria-label="Workspace navigation">
           <button class="sidebar-nav-item active"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
           <button class="sidebar-nav-item"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">▧</span><span>Saved drafts</span></button>
         </nav>
 
         <div class="sidebar-section-label">Recent</div>
         <button class="thread-item active">
           <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Study session</strong><small>Draft workspace</small></span>
+          <span class="thread-copy"><strong>Study session</strong><small>Reply workspace</small></span>
           <span class="thread-more">•••</span>
         </button>
         <button class="thread-item">
@@ -51,7 +50,7 @@
 
         <div class="sidebar-spacer"></div>
         <div class="sidebar-footer">
-          <div class="account-row"><span class="account-avatar">J</span><span><strong>Jonah</strong><small>Draft mode active</small></span><span class="account-more">•••</span></div>
+          <div class="account-row"><span class="account-avatar">J</span><span><strong>Jonah</strong><small>Reply mode active</small></span><span class="account-more">•••</span></div>
           <div class="sidebar-disclosure"><span class="status-dot"></span> Manual paste only · no live WhatsApp access</div>
         </div>
       </aside>
@@ -65,7 +64,7 @@
             <button class="model-pill" aria-label="Current assistant mode">JARVIS <span>⌄</span></button>
           </div>
           <div class="topbar-actions">
-            <div class="topbar-status"><span class="status-dot"></span><span>draft mode active</span></div>
+            <div class="topbar-status"><span class="status-dot"></span><span>reply mode active</span></div>
             <button class="install-button" id="installButton" hidden>install app</button>
             <button class="icon-button" id="settingsButton" aria-label="Open settings">⌘</button>
           </div>
@@ -95,7 +94,7 @@
             <div class="message-stream" id="messageStream" aria-live="polite"></div>
 
             <div class="composer-wrap">
-              <div class="composer-label"><span class="tiny-led"></span> your message / draft input</div>
+              <div class="composer-label"><span class="tiny-led"></span> your message</div>
               <div class="composer">
                 <textarea id="incomingInput" rows="3" placeholder="Paste an incoming message or use voice input..."></textarea>
                 <div class="composer-actions">
@@ -115,7 +114,7 @@
                   <div><span class="tiny-led"></span><strong>live conversation channel</strong></div>
                   <span class="live-voice-state" id="liveVoiceState">standby</span>
                 </div>
-                <p>Speak normally. JARVIS listens, drafts, and reads back a reply for you. Nothing is sent automatically.</p>
+                <p>Speak normally. JARVIS listens and reads back a reply for you.</p>
                 <div class="live-voice-actions">
                   <button class="text-button" id="stopSpeakingButton">stop audio</button>
                   <span id="voiceCapability">microphone permission required</span>
@@ -146,11 +145,10 @@
               <div class="turn-count"><span class="tiny-led"></span><span id="turnCount">3 turns in working memory</span><span class="mono">live</span></div>
             </div>
 
-            <div class="approval-gate"><span class="gate-icon">✓</span><div><strong>approval gate engaged</strong><span>JARVIS will never send without your approval.</span></div></div>
           </aside>
         </main>
 
-        <footer class="footer-bar"><span>private by design · draft-first</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
+        <footer class="footer-bar"><span>private by design · reply workspace</span><span>voice input / live browser channel · <span id="apiStatus">AI endpoint / connecting…</span></span></footer>
       </div>
     </div>
     <div class="toast" id="toast" role="status"></div>

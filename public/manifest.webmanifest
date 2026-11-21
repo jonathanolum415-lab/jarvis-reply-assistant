@@ -1,7 +1,7 @@
 {
   "name": "JARVIS Reply Assistant",
   "short_name": "JARVIS",
-  "description": "A draft-first AI reply co-pilot for messenger conversations.",
+  "description": "An AI reply co-pilot for messenger conversations.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

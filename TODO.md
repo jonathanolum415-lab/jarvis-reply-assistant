@@ -2,30 +2,29 @@
 
 ## [x] Deliver the ChatGPT-style conversation layout
 - Use a left sidebar for new chats, recent threads, workspace navigation, and the manual-paste disclosure.
-- Give the central conversation a focused ChatGPT-like message stream, model/status header, and rounded draft composer.
-- Keep JARVIS response modes, voice controls, context, and the approval gate available in a compact intelligence rail.
-- Collapse the rail and sidebar cleanly on smaller screens without removing the draft-first boundary.
+- Give the central conversation a focused ChatGPT-like message stream, model/status header, and rounded message composer.
+- Keep JARVIS response modes, voice controls, and context available in a compact intelligence rail.
+- Collapse the rail and sidebar cleanly on smaller screens.
 
 ## [x] Deliver a visible JARVIS command-center workspace
 - Show a split interface with a conversation workspace and JARVIS response/context panel.
 - Use the confirmed cinematic dark command-center system with restrained cyan accents and subtle motion.
 - Keep the layout responsive for desktop and narrow screens.
 
-## [x] Deliver a draft-first reply workflow
+## [x] Deliver a direct reply workflow
 - Let the user choose Professional, Friendly, Funny, Short, Apologetic, Romantic, or JARVIS modes.
 - Show the generated assistant reply for the active incoming message.
-- Allow the generated reply to become an editable draft.
-- Provide copy and use-as-draft review actions; never represent review as an automatic send.
-- Never send a message automatically.
+- Show the generated reply directly in the conversation.
+- Do not connect to or send messages through WhatsApp or other messenger services.
 
 ## [x] Deliver simulated voice input
 - Provide a voice control with listening, processing, and transcribed-message states.
-- Show the simulated transcript in the composer and make it available for reply drafting.
+- Show the simulated transcript in the composer and make it available for reply generation.
 
 ## [x] Deliver live voice conversation mode
 - Use browser microphone speech recognition for natural spoken turns where supported.
-- Send each captured turn through the real reply API, read the first draft aloud, and resume listening for the next turn.
-- Provide pause and stop-audio controls, compatibility messaging, and an explicit boundary that nothing is sent automatically.
+- Send each captured turn through the real reply API, read the reply aloud, and resume listening for the next turn.
+- Provide pause and stop-audio controls and compatibility messaging.
 
 ## [x] Demonstrate multi-turn context management
 - Seed a multi-turn conversation with visible prior messages.
@@ -39,8 +38,8 @@
 - Enable the managed server capability.
 - Expose `POST /api/reply` using the managed LLM service with server-only credentials.
 - Send the selected tone, incoming message, visible multi-turn transcript, and context signals to the model.
-- Return one usable draft reply and an explanation to the browser.
-- Keep a local fallback for service outages without weakening the draft-first approval gate.
+- Return one usable reply and an explanation to the browser.
+- Keep a local fallback for service outages.
 
 ## [x] Make the API deployment-ready
 - Build a production container from the committed lockfile and Dockerfile.
