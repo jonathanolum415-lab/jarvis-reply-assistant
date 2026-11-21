@@ -194,9 +194,11 @@ async function startVoiceRecording({ live = false } = {}) {
     voiceRecorder.ondataavailable = event => { if (event.data && event.data.size) voiceChunks.push(event.data); };
     voiceRecorder.onerror = () => { cleanupVoiceStream(); showToast('Microphone recording failed'); setLiveVoiceState('mic error','recording failed'); };
     voiceRecorder.onstop = async () => {
+      const wasLiveRecording = voiceRecordingLive;
       const recordedMime = voiceRecorder?.mimeType || mime || 'audio/webm';
       const blob = new Blob(voiceChunks,{type:recordedMime});
       cleanupVoiceStream();
+      if (wasLiveRecording && !liveVoiceActive) return;
       if (!blob.size) { setLiveVoiceState('no audio','No audio captured. Try again.'); if(liveVoiceActive) startVoiceRecording({live:true}); return; }
       setLiveVoiceState('transcribing','Sending recorded audio for speech recognition');
       try {
