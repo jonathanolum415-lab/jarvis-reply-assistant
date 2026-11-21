@@ -115,7 +115,7 @@ async function generateReplies(input) {
 
   const content = payload?.choices?.[0]?.message?.content;
   if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('The AI service returned no reply text.');
+    throw Object.assign(new Error('The AI service returned no reply text.'), { status:502 });
   }
 
   const parsed = cleanReply(content);
