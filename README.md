@@ -25,6 +25,8 @@ The app never sends a WhatsApp, Messenger, SMS, or other chat message automatica
 
 The available response modes are Professional, Friendly, Funny, Short, Apologetic, Romantic, and JARVIS. Each mode shapes one direct reply, while the context panel shows the conversation summary and tracked signals used to shape it.
 
+Press **Enter** in the incoming-message box to generate a reply. Press **Shift+Enter** to add a newline.
+
 ### Voice dictation
 
 - Use the microphone button beside the incoming-message box to dictate text into the composer.

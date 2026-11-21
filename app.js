@@ -1,3 +1,5 @@
+import { handleComposerKeydown } from './keyboard.js';
+
 const state = {
   mode: 'JARVIS',
   incoming: '',
@@ -274,9 +276,7 @@ function setupPwa() {
 }
 
 $('generateButton').addEventListener('click', generate);
-incomingInput.addEventListener('keydown', event => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
-});
+incomingInput.addEventListener('keydown', event => handleComposerKeydown(event, generate));
 voiceInputButton.addEventListener('click', toggleVoiceDictation);
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
