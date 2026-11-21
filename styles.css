@@ -189,8 +189,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 .composer:focus-within { border-color: rgba(116, 217, 220, .7); box-shadow: 0 0 0 3px rgba(116, 217, 220, .08); }
 textarea { display: block; width: 100%; padding: 14px 16px 10px; resize: none; color: var(--text); background: transparent; border: 0; outline: 0; font-size: 14px; line-height: 1.55; }
 textarea::placeholder, input::placeholder { color: #858585; }
-.composer-actions { justify-content: space-between; padding: 6px 8px 8px; }
-.composer-right-actions { gap: 10px; }
+.composer-actions { justify-content: flex-start; padding: 6px 8px 8px; }
+.composer-left-actions { width: 100%; justify-content: flex-start; }
 .composer-input-row { display: flex; align-items: stretch; gap: 8px; padding-right: 8px; }
 .composer-input-row textarea { min-width: 0; flex: 1; }
 .dictation-button { width: 42px; height: 42px; flex: 0 0 42px; align-self: center; display: grid; place-items: center; color: var(--accent); background: #252525; border: 1px solid #4a4a4a; border-radius: 10px; cursor: pointer; font-size: 17px; transition: .2s; }
@@ -267,7 +267,7 @@ textarea::placeholder, input::placeholder { color: #858585; }
   .message-bubble { font-size: 13px; line-height: 1.6; }
   .composer-wrap { padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
   .composer-actions { align-items: flex-start; gap: 8px; }
-  .composer-right-actions { flex-direction: column-reverse; align-items: flex-end; gap: 4px; }
+  .composer-left-actions { justify-content: flex-start; }
   .dictation-button, .primary-button { min-height: 40px; }
   .intel-pane { padding: 18px 14px calc(24px + env(safe-area-inset-bottom)); }
   .footer-bar { flex-direction: column; gap: 5px; padding: 9px 14px calc(9px + env(safe-area-inset-bottom)); }
@@ -283,8 +283,7 @@ textarea::placeholder, input::placeholder { color: #858585; }
   .message { padding-inline: 0; }
   .message-avatar { width: 25px; height: 25px; flex-basis: 25px; }
   .composer-actions { flex-direction: column; }
-  .composer-right-actions { width: 100%; }
-  .composer-right-actions { flex-direction: row; align-items: center; justify-content: flex-end; }
+  .composer-left-actions { width: 100%; flex-direction: row; align-items: center; justify-content: flex-start; }
   .primary-button { min-height: 42px; }
   .intel-pane { padding-inline: 12px; }
   .mode-button { min-height: 36px; }
@@ -301,3 +300,4 @@ textarea::placeholder, input::placeholder { color: #858585; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
