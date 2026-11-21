@@ -77,11 +77,14 @@ async function generateReplies(input) {
   if (!modes.has(mode)) throw Object.assign(new Error('Unknown response tone.'), { status:400 });
   if (!message || message.length > maxMessageChars) throw Object.assign(new Error('Message must be between 1 and ' + maxMessageChars + ' characters.'), { status:400 });
 
-  const transcript = turns
-    .filter(turn => turn && typeof turn === 'object' && !turn.assistant && !turn.draft)
+  const historyTurns = turns.filter(turn => turn && typeof turn === 'object' && !turn.assistant && !turn.draft);
+  if (historyTurns.at(-1) && String(historyTurns.at(-1).text || '').trim() === message) {
+    historyTurns.pop();
+  }
+  const transcript = historyTurns
     .slice(-6)
     .map(turn => `${String(turn.from || 'Contact').slice(0,40)}: ${String(turn.text || '').slice(0,700)}`)
-    .join('\n');
+    .join('\\n');
   const system = [
     'You are JARVIS, a discreet reply co-pilot.',
     'Write exactly one concise, natural reply in the selected tone. Never claim to send a message or invent facts.',
