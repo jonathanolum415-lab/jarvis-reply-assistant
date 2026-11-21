@@ -61,7 +61,7 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     assert.equal(tooLong.status,400);
 
     const removedTranscription = await fetch(baseUrl+'/api/transcribe',{method:'POST',headers:{Origin:origin},body:'audio'});
-    assert.equal(removedTranscription.status,404);
+    assert.equal(removedTranscription.status,405);
   } finally {
     child.kill();
     await new Promise(resolve => provider.close(resolve));
