@@ -8,10 +8,16 @@ const staticRoot = process.env.NODE_ENV === 'production' ? path.resolve(root, 'd
 const port = Number(process.env.PORT || 3000);
 const apiBase = (process.env.MANUS_API_URL || '').replace(/\/$/, '');
 const apiKey = process.env.MANUS_API_KEY || '';
-const maxBodyBytes = 1024 * 1024;
+const maxBodyBytes = 32 * 1024;
+const maxMessageChars = 4000;
+const rateLimits = new Map();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 12;
+const modes = new Set(['Professional','Friendly','Funny','Short','Apologetic','Romantic','JARVIS']);
 const allowedOrigins = new Set([
   'https://jonathanolum415-lab.github.io',
-  'https://jarvisreply-dvh8yfjn.manus.space'
+  'https://jarvisreply-dvh8yfjn.manus.space',
+  'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'
 ]);
 
 const mimeTypes = {
@@ -38,60 +44,39 @@ function sendJson(res, status, payload) {
 
 function readJson(req) {
   return new Promise((resolve, reject) => {
-    let raw = '';
-    let size = 0;
+    let raw = '', size = 0, tooLarge = false;
     req.setEncoding('utf8');
-    req.on('data', chunk => {
-      size += Buffer.byteLength(chunk);
-      if (size > maxBodyBytes) {
-        reject(new Error('Request body is too large.'));
-        req.destroy();
-        return;
-      }
-      raw += chunk;
-    });
-    req.on('end', () => {
-      try {
-        resolve(raw ? JSON.parse(raw) : {});
-      } catch {
-        reject(new Error('Request body must be valid JSON.'));
-      }
-    });
+    req.on('data', chunk => { size += Buffer.byteLength(chunk); if (size > maxBodyBytes) { tooLarge = true; raw = ''; } else if (!tooLarge) raw += chunk; });
+    req.on('end', () => { if (tooLarge) return reject(Object.assign(new Error('Request body is too large.'), { status:413 })); try { resolve(raw ? JSON.parse(raw) : {}); } catch { reject(Object.assign(new Error('Request body must be valid JSON.'), { status:400 })); } });
     req.on('error', reject);
   });
 }
-
 function cleanReply(content) {
-  const lines = content
-    .replace(/```(?:json|text)?/gi, '')
-    .replace(/```/g, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean);
-
+  const lines = content.trim().split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  if (lines[0]?.startsWith('```')) lines.shift(); if (lines.at(-1)?.startsWith('```')) lines.pop();
+  const text = lines.join('\n');
+  try { const parsed = JSON.parse(text); if (typeof parsed.reply === 'string' && parsed.reply.trim()) return { reply:parsed.reply.trim(), explanation:typeof parsed.explanation === 'string' ? parsed.explanation.trim() : '' }; } catch {}
   const explanationIndex = lines.findIndex(line => /^explanation\s*:/i.test(line));
   const explanationLine = explanationIndex >= 0 ? lines[explanationIndex] : '';
-  const replyLines = (explanationIndex >= 0 ? lines.slice(0, explanationIndex) : lines)
-    .filter(line => !/^explanation\s*:/i.test(line));
+  const replyLines = (explanationIndex >= 0 ? lines.slice(0, explanationIndex) : lines).filter(line => !/^explanation\s*:/i.test(line));
   const reply = replyLines.join(' ').replace(/^reply\s*:\s*/i, '').replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim();
-  return {
-    reply,
-    explanation: explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '') : ''
-  };
+  return { reply, explanation:explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '').trim() : '' };
 }
 
 async function generateReplies(input) {
   if (!apiBase || !apiKey) {
-    throw new Error('The managed AI service is not available to this server yet.');
+    throw Object.assign(new Error('The managed AI service is not available to this server yet.'), { status:503 });
   }
 
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw Object.assign(new Error('Request must be a JSON object.'), { status:400 });
   const mode = String(input.mode || 'JARVIS');
-  const message = String(input.message || '').trim();
-  const turns = Array.isArray(input.turns) ? input.turns.slice(-8) : [];
+  const message = typeof input.message === 'string' ? input.message.trim() : '';
+  const turns = Array.isArray(input.turns) ? input.turns.slice(-12) : [];
   const context = Array.isArray(input.context) ? input.context.slice(0, 12) : [];
-  if (!message) throw new Error('Add an incoming message before generating a reply.');
+  if (!modes.has(mode)) throw Object.assign(new Error('Unknown response tone.'), { status:400 });
+  if (!message || message.length > maxMessageChars) throw Object.assign(new Error('Message must be between 1 and ' + maxMessageChars + ' characters.'), { status:400 });
 
-  const transcript = turns.map(turn => `${turn.from || 'Contact'}: ${turn.text || ''}`).join('\n');
+  const transcript = turns.filter(turn => turn && typeof turn === 'object' && !turn.assistant && !turn.draft).map(turn => `${String(turn.from || 'Contact').slice(0,40)}: ${String(turn.text || '').slice(0,1500)}`).join('\n');
   const system = [
     'You are JARVIS, a discreet reply co-pilot.',
     'Generate replies only. Never claim to send a message, and never invent facts.',
@@ -106,7 +91,8 @@ async function generateReplies(input) {
     `Tracked context signals: ${context.join(', ') || '(none)'}`
   ].join('\n\n');
 
-  const upstream = await fetch(`${apiBase}/v1/chat/completions`, {
+  let upstream;
+  try { upstream = await fetch(`${apiBase}/v1/chat/completions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -117,13 +103,14 @@ async function generateReplies(input) {
         { role: 'system', content: system },
         { role: 'user', content: user }
       ]
-    })
-  });
+    }),
+    signal: AbortSignal.timeout(25000)
+  }); } catch { throw Object.assign(new Error('AI provider is unreachable or timed out.'), { status:503 }); }
 
   const payload = await upstream.json().catch(() => ({}));
   if (!upstream.ok || payload.error) {
     const reason = payload?.error?.message || `AI service returned HTTP ${upstream.status}.`;
-    throw new Error(reason);
+    throw Object.assign(new Error(reason), { status:502 });
   }
 
   const content = payload?.choices?.[0]?.message?.content;
@@ -133,7 +120,7 @@ async function generateReplies(input) {
 
   const parsed = cleanReply(content);
   if (!parsed.reply || parsed.reply.length < 2) {
-    throw new Error('The AI service returned no usable reply.');
+    throw Object.assign(new Error('The AI service returned no usable reply.'), { status:502 });
   }
   return { ...parsed, provider: 'managed-llm' };
 }
@@ -163,41 +150,27 @@ async function serveStatic(req, res, pathname) {
   res.end('Not found');
 }
 
+function rateLimit(req) {
+  const ip = req.socket.remoteAddress || 'unknown'; const now = Date.now(), entry = rateLimits.get(ip);
+  if (!entry || now - entry.start >= RATE_LIMIT_WINDOW_MS) { rateLimits.set(ip,{start:now,count:1}); return false; }
+  entry.count += 1; return entry.count > RATE_LIMIT_MAX;
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.has(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Vary', 'Origin');
-  }
+  if (origin && allowedOrigins.has(origin)) { res.setHeader('Access-Control-Allow-Origin',origin); res.setHeader('Access-Control-Allow-Methods','GET, POST, OPTIONS'); res.setHeader('Access-Control-Allow-Headers','Content-Type'); res.setHeader('Vary','Origin'); }
+  if (url.pathname.startsWith('/api/') && origin && !allowedOrigins.has(origin)) { sendJson(res,403,{error:'Origin not allowed.'}); return; }
   try {
-    if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-    if (url.pathname === '/api/health' && req.method === 'GET') {
-      sendJson(res, 200, { ok: true, aiConfigured: Boolean(apiBase && apiKey) });
-      return;
-    }
-    if (url.pathname === '/api/reply' && req.method === 'POST') {
-      const input = await readJson(req);
-      const result = await generateReplies(input);
-      sendJson(res, 200, result);
-      return;
-    }
-    if (req.method === 'GET') {
-      await serveStatic(req, res, url.pathname);
-      return;
-    }
-    sendJson(res, 405, { error: 'Method not allowed.' });
-  } catch (error) {
-    sendJson(res, 400, { error: error instanceof Error ? error.message : 'Request failed.' });
-  }
+    if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) { res.writeHead(origin && allowedOrigins.has(origin) ? 204 : 403); res.end(); return; }
+    if (url.pathname === '/api/health' && req.method === 'GET') { sendJson(res,200,{ok:true,aiConfigured:Boolean(apiBase && apiKey)}); return; }
+    if (url.pathname === '/api/reply' && req.method === 'POST') { const contentType=req.headers['content-type']||''; if (!contentType.toLowerCase().includes('application/json')) { sendJson(res,415,{error:'Content-Type must be application/json.'}); return; } if (rateLimit(req)) { sendJson(res,429,{error:'Rate limit exceeded. Wait a minute and try again.'}); return; } const input=await readJson(req),result=await generateReplies(input); sendJson(res,200,result); return; }
+    if (req.method === 'GET') { await serveStatic(req,res,url.pathname); return; }
+    sendJson(res,405,{error:'Method not allowed.'});
+  } catch (error) { sendJson(res,error.status||500,{error:error.message||'Request failed.'}); }
 });
-
+setInterval(()=>{const now=Date.now();for(const[ip,entry]of rateLimits)if(now-entry.start>RATE_LIMIT_WINDOW_MS)rateLimits.delete(ip);},RATE_LIMIT_WINDOW_MS).unref();
+server.requestTimeout=30000; server.headersTimeout=10000;
 server.listen(port, '0.0.0.0', () => {
   console.log(`JARVIS server listening on 0.0.0.0:${port}`);
 });
