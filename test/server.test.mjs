@@ -16,11 +16,18 @@ async function freePort() {
 test('reply API health, validation, CORS, and mocked provider response', async () => {
   let capturedPrompt = '';
   const provider = createServer(async (req, res) => {
-    let body = '';
-    for await (const chunk of req) body += chunk;
-    const payload = JSON.parse(body);
-    capturedPrompt = payload.messages?.[1]?.content || '';
+    let body = Buffer.alloc(0);
+    for await (const chunk of req) body = Buffer.concat([body,chunk]);
     res.writeHead(200, { 'Content-Type':'application/json' });
+    if (req.url === '/v1/audio/transcriptions') {
+      const formText = body.toString('latin1');
+      assert.match(formText,/whisper-1/);
+      assert.match(formText,/sample audio bytes/);
+      res.end(JSON.stringify({text:'Hello from voice input'}));
+      return;
+    }
+    const payload = JSON.parse(body.toString('utf8'));
+    capturedPrompt = payload.messages?.[1]?.content || '';
     res.end(JSON.stringify({ choices:[{ message:{ content:JSON.stringify({ reply:'Test reply', explanation:'Mocked explanation' }) } }] }));
   });
   provider.listen(0, '127.0.0.1');
@@ -59,6 +66,12 @@ test('reply API health, validation, CORS, and mocked provider response', async (
 
     const tooLong = await fetch(baseUrl+'/api/reply', { method:'POST', headers:{Origin:origin,'Content-Type':'application/json'}, body:JSON.stringify({message:'x'.repeat(4001),mode:'JARVIS'}) });
     assert.equal(tooLong.status,400);
+
+    const audioForm = new FormData();
+    audioForm.append('audio',new Blob(['sample audio bytes'],{type:'audio/webm'}),'test.webm');
+    const transcribed = await fetch(baseUrl+'/api/transcribe',{method:'POST',headers:{Origin:origin},body:audioForm});
+    assert.equal(transcribed.status,200);
+    assert.deepEqual(await transcribed.json(),{text:'Hello from voice input'});
   } finally {
     child.kill();
     await new Promise(resolve => provider.close(resolve));
