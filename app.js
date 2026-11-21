@@ -22,7 +22,8 @@ const voiceInputButton = $('voiceInputButton');
 const voiceStatus = $('voiceStatus');
 const installButton = $('installButton');
 const generatingState = $('generatingState');
-const apiStatus = $('apiStatus');
+const connectionStatus = $('connectionStatus');
+const connectionLabel = $('connectionLabel');
 const toast = $('toast');
 const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://jarvisreply-dvh8yfjn.manus.space'
@@ -78,9 +79,9 @@ function renderMessages() {
 }
 
 function renderModes() {
-  modeGrid.innerHTML = modes.map((mode, index) => `
+  modeGrid.innerHTML = modes.map(mode => `
     <button class="mode-button ${state.mode === mode ? 'active' : ''}" data-mode="${mode}">
-      ${String(index + 1).padStart(2, '0')} ${mode}
+      ${mode}
     </button>
   `).join('');
 
@@ -227,9 +228,12 @@ async function checkApi() {
   try {
     const response = await fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(10000) });
     const payload = await response.json();
-    apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
+    const connected = response.ok && payload.aiConfigured;
+    connectionStatus.dataset.status = connected ? 'connected' : 'offline';
+    connectionLabel.textContent = connected ? 'connected' : 'offline';
   } catch {
-    apiStatus.textContent = 'AI endpoint / offline';
+    connectionStatus.dataset.status = 'offline';
+    connectionLabel.textContent = 'offline';
   }
 }
 
