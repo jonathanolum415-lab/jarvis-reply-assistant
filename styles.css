@@ -373,15 +373,6 @@ textarea { min-height: 88px; padding: 17px 19px 13px; resize: none; font-size: 1
 .mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .mode-button { min-height: 40px; padding: 8px 10px; color: var(--text-soft); background: #1c2527; border: 1px solid #334144; border-radius: 11px; cursor: pointer; font: 10px var(--mono); text-align: left; transition: .18s; }
 .mode-button:hover, .mode-button.active { color: var(--accent); background: #1b3935; border-color: #4e9b8e; }
-.explain-section { padding: 18px 0; border-bottom: 1px solid #293638; }
-.explain-button { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 14px 15px; color: var(--text); background: #202c2d; border: 1px solid #405654; border-radius: 13px; cursor: pointer; font: 600 12px var(--sans); transition: .2s; }
-.explain-button:hover { background: #273a39; border-color: #628b83; }
-.explain-button span { color: var(--accent); font-size: 17px; }
-.approval-gate { display: flex; align-items: flex-start; gap: 12px; margin-top: 20px; padding: 15px; background: #25261f; border: 1px solid #5a5334; border-radius: 15px; }
-.approval-icon { width: 22px; height: 22px; flex: 0 0 22px; display: grid; place-items: center; color: #e1c66e; background: rgba(217, 183, 95, .13); border-radius: 50%; font-size: 12px; }
-.approval-gate strong, .approval-gate span:not(.approval-icon) { display: block; }
-.approval-gate strong { margin: 2px 0 6px; color: #f0e5bb; font-size: 12px; }
-.approval-gate div span { color: #aaa38b; font-size: 10px; line-height: 1.45; }
 .footer-bar { display: none; }
 
 @media (max-width: 900px) {
@@ -405,10 +396,6 @@ textarea { min-height: 88px; padding: 17px 19px 13px; resize: none; font-size: 1
   .panel-label { margin-bottom: 5px; }
   .mode-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
   .mode-button { min-height: 30px; padding: 4px 3px; font-size: 8px; text-align: center; }
-  .explain-section { padding: 6px 0; }
-  .explain-button { min-height: 34px; padding: 8px 10px; }
-  .approval-gate { margin-top: 6px; padding: 8px 10px; }
-  .approval-gate strong { margin-top: 0; }
 }
 @media (max-width: 520px) {
   .topbar { padding: 0 14px; }
@@ -435,6 +422,4 @@ textarea { min-height: 88px; padding: 17px 19px 13px; resize: none; font-size: 1
   .primary-button, .dictation-button { min-height: 40px; height: 40px; }
   .dictation-button { width: 40px; flex-basis: 40px; }
   .intel-pane { max-height: 270px; margin: 0 8px; padding: 8px 10px; }
-  .approval-gate { gap: 9px; }
-  .approval-gate div span { font-size: 9px; }
 }

@@ -3,7 +3,6 @@ import { consumeComposerText, handleComposerKeydown } from './keyboard.js';
 const state = {
   mode: 'JARVIS',
   incoming: '',
-  explanation: '',
   replyPending: false,
   turns: [],
   context: []
@@ -86,8 +85,7 @@ function renderModes() {
   modeGrid.querySelectorAll('[data-mode]').forEach(button => {
     button.addEventListener('click', () => {
       state.mode = button.dataset.mode;
-      state.explanation = '';
-      generatingState.textContent = 'ready to generate';
+        generatingState.textContent = 'ready to generate';
       renderModes();
     });
   });
@@ -126,7 +124,6 @@ async function generate() {
     });
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
-    state.explanation = payload.explanation || '';
     if (typeof payload.reply !== 'string' || !payload.reply.trim()) throw new Error('The AI returned an invalid reply.');
     const reply = payload.reply.trim();
     newReply = reply;
@@ -271,10 +268,6 @@ function setupPwa() {
 $('generateButton').addEventListener('click', generate);
 incomingInput.addEventListener('keydown', event => handleComposerKeydown(event, generate));
 voiceInputButton.addEventListener('click', toggleVoiceDictation);
-$('explainButton').addEventListener('click', () => {
-  const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
-  showToast(reason);
-});
 $('newThreadButton').addEventListener('click', () => {
   state.turns = [];
   state.context = [];
