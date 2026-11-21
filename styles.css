@@ -185,19 +185,19 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 .composer-wrap { width: min(var(--content-width), calc(100% - 48px)); margin: 0 auto; padding: 0 0 19px; }
 .composer-label { align-items: center; gap: 7px; margin: 0 0 8px 4px; color: var(--faint); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
-.composer { overflow: hidden; border: 1px solid #565656; border-radius: 15px; background: var(--surface-soft); box-shadow: 0 3px 16px rgba(0, 0, 0, .16); transition: border-color .2s, box-shadow .2s; }
-.composer:focus-within { border-color: rgba(116, 217, 220, .7); box-shadow: 0 0 0 3px rgba(116, 217, 220, .08); }
-textarea { display: block; width: 100%; padding: 14px 16px 10px; resize: none; color: var(--text); background: transparent; border: 0; outline: 0; font-size: 14px; line-height: 1.55; }
+.composer { overflow: hidden; border: 1px solid #50585b; border-radius: 20px; background: linear-gradient(145deg, #292c2d, #222424 72%); box-shadow: 0 8px 24px rgba(0, 0, 0, .22), inset 0 1px rgba(255, 255, 255, .035); transition: border-color .2s, box-shadow .2s, transform .2s; }
+.composer:focus-within { border-color: rgba(116, 217, 220, .78); box-shadow: 0 0 0 3px rgba(116, 217, 220, .1), 0 10px 28px rgba(0, 0, 0, .25); }
+textarea { display: block; width: 100%; min-height: 102px; padding: 18px 18px 14px; resize: vertical; color: var(--text); background: transparent; border: 0; outline: 0; font-size: 14px; line-height: 1.65; }
 textarea::placeholder, input::placeholder { color: #858585; }
-.composer-actions { justify-content: flex-start; padding: 6px 8px 8px; }
-.composer-left-actions { width: 100%; justify-content: flex-start; }
+.composer-actions { justify-content: flex-start; padding: 0 14px 14px; }
+.composer-left-actions { display: flex; width: 100%; align-items: center; justify-content: flex-start; gap: 10px; }
 .composer-input-row { display: flex; align-items: stretch; gap: 8px; padding-right: 8px; }
 .composer-input-row textarea { min-width: 0; flex: 1; }
-.dictation-button { width: 42px; height: 42px; flex: 0 0 42px; align-self: center; display: grid; place-items: center; color: var(--accent); background: #252525; border: 1px solid #4a4a4a; border-radius: 10px; cursor: pointer; font-size: 17px; transition: .2s; }
-.dictation-button:hover, .dictation-button.listening { color: var(--accent-strong); background: #164144; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(116, 217, 220, .08); }
+.dictation-button { width: 44px; height: 44px; flex: 0 0 44px; display: grid; place-items: center; color: var(--accent); background: #303738; border: 1px solid #566365; border-radius: 14px; cursor: pointer; font-size: 17px; box-shadow: inset 0 1px rgba(255, 255, 255, .06); transition: .2s; }
+.dictation-button:hover, .dictation-button.listening { color: var(--accent-strong); background: #164144; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(116, 217, 220, .1); }
 .dictation-button:disabled { opacity: .45; cursor: not-allowed; }
-.primary-button { color: var(--accent-ink); background: var(--accent); border: 1px solid var(--accent); font-weight: 600; }
-.primary-button:hover { background: var(--accent-strong); transform: translateY(-1px); }
+.primary-button { min-height: 44px; padding: 0 20px; color: #102526; background: linear-gradient(135deg, #8ce4e5, #65c9cc); border: 1px solid rgba(186, 255, 255, .45); border-radius: 14px; cursor: pointer; font: 600 12px var(--mono); letter-spacing: .02em; box-shadow: 0 4px 12px rgba(73, 195, 198, .17), inset 0 1px rgba(255, 255, 255, .38); transition: .2s; }
+.primary-button:hover { background: linear-gradient(135deg, #a0f1f1, #73d8da); box-shadow: 0 6px 17px rgba(73, 195, 198, .25); transform: translateY(-1px); }
 .primary-button:disabled { opacity: .55; cursor: wait; transform: none; }
 .shortcut { color: var(--faint); font-size: 9px; }
 .voice-status { min-height: 16px; margin: 7px 4px 0; color: var(--accent); font: 9px var(--mono); line-height: 1.5; }
@@ -294,7 +294,7 @@ textarea::placeholder, input::placeholder { color: #858585; }
   .new-chat-button { top: calc(8px + env(safe-area-inset-top)); right: 10px; }
   .conversation-heading, .conversation-meta, .integration-note, .message-stream, .composer-wrap { width: calc(100% - 20px); }
   .composer-actions { padding-inline: 6px; }
-  .dictation-button { width: 40px; flex-basis: 40px; }
+  .dictation-button { width: 42px; flex-basis: 42px; }
   .message-author { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
