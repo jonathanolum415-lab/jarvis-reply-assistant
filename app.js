@@ -114,7 +114,7 @@ function renderMessages() {
         button.textContent = 'copied ✓';
         showToast('Draft copied to clipboard');
       } catch {
-        incomingInput.value = button.dataset.text;
+        draftEditor.value = button.dataset.text;
         state.selectedDraft = button.dataset.text;
         button.textContent = 'loaded ✓';
         showToast('Clipboard unavailable — draft loaded for manual copying');
@@ -160,8 +160,8 @@ function renderSuggestions() {
   suggestions.querySelectorAll('.use-draft').forEach(button => {
     button.addEventListener('click', () => {
       state.selectedDraft = button.dataset.text;
-      incomingInput.value = state.selectedDraft;
-      showToast('Draft loaded — review before approval');
+      draftEditor.value = state.selectedDraft;
+      showToast('Draft loaded — review and edit it below');
       button.textContent = 'draft loaded ✓';
     });
   });
