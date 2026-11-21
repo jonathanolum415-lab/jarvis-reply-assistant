@@ -192,6 +192,7 @@ async function generate({ speakReply = false } = {}) {
     state.explanation = payload.explanation || '';
     if (typeof payload.reply !== 'string' || !payload.reply.trim()) throw new Error('The AI returned an invalid reply.');
     const reply = payload.reply.trim();
+    draft = reply;
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true, draft: true });
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready — approval still required');
@@ -205,7 +206,7 @@ async function generate({ speakReply = false } = {}) {
     $('generateButton').disabled = false;
   }
 
-  const draft = state.turns.findLast(turn => turn.assistant)?.text || '';
+  let draft = '';
   if (speakReply && draft) speakDraft(draft);
   return draft;
 }
