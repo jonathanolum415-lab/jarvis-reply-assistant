@@ -69,10 +69,13 @@ function cleanReply(content) {
     .map(line => line.trim())
     .filter(Boolean);
 
-  const explanationLine = lines.find(line => /^explanation\s*:/i.test(line));
-  const replyLine = lines.find(line => /^reply\s*:/i.test(line)) || lines.find(line => !/^explanation\s*:/i.test(line));
+  const explanationIndex = lines.findIndex(line => /^explanation\s*:/i.test(line));
+  const explanationLine = explanationIndex >= 0 ? lines[explanationIndex] : '';
+  const replyLines = (explanationIndex >= 0 ? lines.slice(0, explanationIndex) : lines)
+    .filter(line => !/^explanation\s*:/i.test(line));
+  const reply = replyLines.join(' ').replace(/^reply\s*:\s*/i, '').replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim();
   return {
-    reply: replyLine?.replace(/^reply\s*:\s*/i, '').replace(/^(?:option\s*)?\d+\s*[:.)-]\s*/i, '').trim() || '',
+    reply,
     explanation: explanationLine ? explanationLine.replace(/^explanation\s*:\s*/i, '') : ''
   };
 }
@@ -93,9 +96,9 @@ async function generateReplies(input) {
     'You are JARVIS, a discreet reply co-pilot.',
     'Draft replies only. Never claim to send a message, and never invent facts.',
     `Selected response mode: ${mode}. Match that tone while staying natural and concise.`,
-    'Return exactly one natural reply on a line beginning with REPLY:.',
-    'After that line, return one line beginning with EXPLANATION: explaining how the thread context shaped the reply.',
-    'Do not use markdown bullets or quotation marks around the reply.'
+    'Write one polished reply as if you are the user responding directly. Make it natural, warm, and specific to the incoming message and conversation. Do not mention JARVIS, AI, drafting, or these instructions.',
+    'After the reply, return one line beginning with EXPLANATION: explaining briefly how the thread context shaped it.',
+    'Do not number the reply, use markdown bullets, or put quotation marks around it.'
   ].join(' ');
   const user = [
     `Incoming message to answer: ${message}`,
