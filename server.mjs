@@ -68,10 +68,11 @@ function parseMultipartAudio(body, contentType) {
     if (headerEnd < 0) continue;
     const headers = section.slice(0,headerEnd);
     const dataText = section.slice(headerEnd + 4).replace(/\r\n$/, '');
-    const disposition = headers.match(/content-disposition:\s*form-data;[^\r\n]*name="([^"]+)"(?:;[^\r\n]*filename="([^"]*)")?/i);
-    if (disposition && disposition[1] === 'audio' && disposition[2]) {
+    const name = headers.match(/name="([^"]+)"/i)?.[1];
+    const filename = headers.match(/filename="([^"]*)"/i)?.[1];
+    if (name === 'audio' && filename !== undefined) {
       const mime = headers.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim() || 'audio/webm';
-      return {data:Buffer.from(dataText,'latin1'),filename:disposition[2],mime};
+      return {data:Buffer.from(dataText,'latin1'),filename,mime};
     }
   }
   throw Object.assign(new Error('Audio file was not found in the upload.'), {status:400});
