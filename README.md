@@ -25,14 +25,12 @@ The app never sends a WhatsApp, Messenger, SMS, or other chat message automatica
 
 The available response modes are Professional, Friendly, Funny, Short, Apologetic, Romantic, and JARVIS. Each mode shapes one direct reply, while the context panel shows the conversation summary and tracked signals used to shape it.
 
-### Voice input and live voice
+### Voice dictation
 
-- **Simulate voice** demonstrates the transcript-to-reply flow.
-- **Live voice** uses the browser's Web Speech API where supported, commonly Chrome or Edge.
-- Captured speech is converted into a reply request and the generated reply can be read aloud with browser speech synthesis.
-- Voice conversations can be paused or stopped. Nothing is sent automatically.
-
-Microphone permission and browser support are controlled by the browser; the app does not upload or store a recording as a chat message.
+- Use the microphone button beside the incoming-message box to dictate text into the composer.
+- Tap the microphone again to stop listening, then review or edit the recognized text before generating a reply.
+- Dictation uses the browser's built-in SpeechRecognition API. The app does not record audio, upload audio files, or speak generated replies.
+- Speech recognition is not supported by every browser or device. If the button is unavailable, use the microphone on your device's on-screen keyboard.
 
 ### Installable PWA
 
@@ -43,7 +41,7 @@ The app includes a web manifest, standalone display mode, install icons, and a s
 ```text
 Browser frontend
   ├─ index.html       Interface shell and accessible controls
-  ├─ app.js           UI state, direct reply workflow, voice, PWA install
+  ├─ app.js           UI state, direct reply workflow, voice dictation, PWA install
   ├─ styles.css       Responsive dark command-center layout
   ├─ manifest.webmanifest / sw.js
   └─ icons/
