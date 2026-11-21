@@ -77,3 +77,12 @@ test('reply API health, validation, CORS, and mocked provider response', async (
     await new Promise(resolve => provider.close(resolve));
   }
 });
+
+
+test('live voice frontend uses real recording and no removed settings element', async () => {
+  const source = await (await import('node:fs/promises')).readFile(new URL('../app.js',import.meta.url),'utf8');
+  assert.match(source,/navigator\.mediaDevices\?\.getUserMedia/);
+  assert.match(source,/new MediaRecorder/);
+  assert.doesNotMatch(source,/simulate voice|That sounds great\. Tomorrow after lunch/);
+  assert.doesNotMatch(source,/\$\('settingsButton'\)\.addEventListener/);
+});
