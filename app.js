@@ -136,8 +136,8 @@ async function generate({ speakReply = false } = {}) {
       body: JSON.stringify({
         message: text,
         mode: state.mode,
-        turns: state.turns,
-        context: state.context
+        turns: state.turns.slice(-12),
+        context: state.context.slice(0,12)
       })
     });
     const payload = await response.json();
@@ -430,7 +430,7 @@ $('newThreadButton').addEventListener('click', () => {
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
-$('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
+
 
 setupLiveVoice();
 setupPwa();
