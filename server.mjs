@@ -51,6 +51,51 @@ function readJson(req) {
     req.on('error', reject);
   });
 }
+
+async function readRawBody(req, maxBytes = 15 * 1024 * 1024) {
+  const chunks = []; let size = 0;
+  for await (const chunk of req) { size += chunk.length; if (size > maxBytes) throw Object.assign(new Error('Audio upload is too large (15 MB maximum).'), {status:413}); chunks.push(chunk); }
+  return Buffer.concat(chunks);
+}
+function parseMultipartAudio(body, contentType) {
+  const match = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+  const boundary = match && (match[1] || match[2]).trim();
+  if (!boundary) throw Object.assign(new Error('Multipart boundary is missing.'), {status:400});
+  const parts = body.toString('latin1').split('--' + boundary);
+  for (const part of parts) {
+    const section = part.replace(/^\r\n/, '').replace(/\r\n--$/, '');
+    const headerEnd = section.indexOf('\r\n\r\n');
+    if (headerEnd < 0) continue;
+    const headers = section.slice(0,headerEnd);
+    const dataText = section.slice(headerEnd + 4).replace(/\r\n$/, '');
+    const name = headers.match(/name="([^"]+)"/i)?.[1];
+    const filename = headers.match(/filename="([^"]*)"/i)?.[1];
+    if (name === 'audio' && filename !== undefined) {
+      const mime = headers.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim() || 'audio/webm';
+      return {data:Buffer.from(dataText,'latin1'),filename,mime};
+    }
+  }
+  throw Object.assign(new Error('Audio file was not found in the upload.'), {status:400});
+}
+async function transcribeAudio(req) {
+  if (!apiBase || !apiKey) throw Object.assign(new Error('Speech transcription is not configured on the server.'), {status:503});
+  const contentType = req.headers['content-type'] || '';
+  if (!contentType.toLowerCase().startsWith('multipart/form-data')) throw Object.assign(new Error('Audio must be uploaded as multipart form data.'), {status:415});
+  const body = await readRawBody(req);
+  const file = parseMultipartAudio(body, contentType);
+  if (!file.data.length) throw Object.assign(new Error('The audio recording is empty.'), {status:400});
+  const form = new FormData();
+  form.append('model','whisper-1');
+  form.append('file',new Blob([file.data],{type:file.mime}),file.filename || 'recording.webm');
+  let upstream;
+  try { upstream = await fetch(apiBase + '/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+apiKey},body:form,signal:AbortSignal.timeout(30000)}); }
+  catch { throw Object.assign(new Error('Speech transcription provider is unreachable or timed out.'),{status:503}); }
+  const payload = await upstream.json().catch(()=>({}));
+  if (!upstream.ok || payload.error) throw Object.assign(new Error(payload?.error?.message || 'Speech transcription failed (HTTP '+upstream.status+').'),{status:502});
+  if (typeof payload.text !== 'string' || !payload.text.trim()) throw Object.assign(new Error('No speech was detected in the recording.'),{status:422});
+  return {text:payload.text.trim()};
+}
+
 function cleanReply(content) {
   const lines = content.trim().split(/\r?\n/).map(line => line.trim()).filter(Boolean);
   if (lines[0]?.startsWith('```')) lines.shift(); if (lines.at(-1)?.startsWith('```')) lines.pop();
@@ -164,6 +209,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'OPTIONS' && url.pathname.startsWith('/api/')) { res.writeHead(origin && allowedOrigins.has(origin) ? 204 : 403); res.end(); return; }
     if (url.pathname === '/api/health' && req.method === 'GET') { sendJson(res,200,{ok:true,aiConfigured:Boolean(apiBase && apiKey)}); return; }
+    if (url.pathname === '/api/transcribe' && req.method === 'POST') { if (rateLimit(req)) { sendJson(res,429,{error:'Rate limit exceeded. Wait a minute and try again.'}); return; } const result=await transcribeAudio(req); sendJson(res,200,result); return; }
     if (url.pathname === '/api/reply' && req.method === 'POST') { const contentType=req.headers['content-type']||''; if (!contentType.toLowerCase().includes('application/json')) { sendJson(res,415,{error:'Content-Type must be application/json.'}); return; } if (rateLimit(req)) { sendJson(res,429,{error:'Rate limit exceeded. Wait a minute and try again.'}); return; } const input=await readJson(req),result=await generateReplies(input); sendJson(res,200,result); return; }
     if (req.method === 'GET') { await serveStatic(req,res,url.pathname); return; }
     sendJson(res,405,{error:'Method not allowed.'});

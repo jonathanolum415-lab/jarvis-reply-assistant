@@ -136,8 +136,8 @@ async function generate({ speakReply = false } = {}) {
       body: JSON.stringify({
         message: text,
         mode: state.mode,
-        turns: state.turns,
-        context: state.context
+        turns: state.turns.slice(-12),
+        context: state.context.slice(0,12)
       })
     });
     const payload = await response.json();
@@ -165,29 +165,96 @@ async function generate({ speakReply = false } = {}) {
   return reply;
 }
 
-function simulateVoice() {
-  if (state.voicePhase !== 'idle') return;
-  state.voicePhase = 'listening';
-  voiceButton.classList.add('listening');
-  voiceLabel.textContent = 'listening…';
-  voiceStatus.textContent = 'voice channel open · speak now';
+let voiceRecorder = null;
+let voiceStream = null;
+let voiceChunks = [];
+let voiceRecordingLive = false;
+let voiceRecordingTimer = null;
 
-  setTimeout(() => {
-    state.voicePhase = 'processing';
-    voiceLabel.textContent = 'processing…';
-    voiceStatus.textContent = 'transcribing audio into message context';
-    setTimeout(() => {
-      state.voicePhase = 'idle';
-      const transcript = 'That sounds great. Tomorrow after lunch works for me — please send the notes when you can.';
-      incomingInput.value = transcript;
-      state.incoming = transcript;
-      voiceButton.classList.remove('listening');
-      voiceLabel.textContent = 'simulate voice';
-      voiceStatus.textContent = 'transcript ready · review before generating';
-      renderContext();
-      showToast('Voice transcript ready for review');
-    }, 900);
-  }, 1100);
+function chooseAudioMime() {
+  const options = ['audio/webm;codecs=opus','audio/webm','audio/mp4'];
+  return options.find(type => window.MediaRecorder && MediaRecorder.isTypeSupported(type)) || '';
+}
+
+async function startVoiceRecording({ live = false } = {}) {
+  if (voiceRecorder && voiceRecorder.state === 'recording') return;
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    voiceCapability.textContent = 'this browser does not support microphone recording';
+    setLiveVoiceState('voice unavailable', 'try a supported browser with microphone recording');
+    showToast('Microphone recording is not supported by this browser');
+    if (live) stopLiveVoice();
+    return;
+  }
+  try {
+    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation:true, noiseSuppression:true, autoGainControl:true } });
+    const mime = chooseAudioMime();
+    voiceChunks = [];
+    voiceRecordingLive = live;
+    voiceRecorder = mime ? new MediaRecorder(voiceStream,{mimeType:mime}) : new MediaRecorder(voiceStream);
+    voiceRecorder.ondataavailable = event => { if (event.data && event.data.size) voiceChunks.push(event.data); };
+    voiceRecorder.onerror = () => { cleanupVoiceStream(); showToast('Microphone recording failed'); setLiveVoiceState('mic error','recording failed'); };
+    voiceRecorder.onstop = async () => {
+      const wasLiveRecording = voiceRecordingLive;
+      const recordedMime = voiceRecorder?.mimeType || mime || 'audio/webm';
+      const blob = new Blob(voiceChunks,{type:recordedMime});
+      cleanupVoiceStream();
+      if (wasLiveRecording && !liveVoiceActive) return;
+      if (!blob.size) { setLiveVoiceState('no audio','No audio captured. Try again.'); if(liveVoiceActive) startVoiceRecording({live:true}); return; }
+      setLiveVoiceState('transcribing','Sending recorded audio for speech recognition');
+      try {
+        const form = new FormData();
+        const ext = recordedMime.includes('mp4') ? 'mp4' : recordedMime.includes('ogg') ? 'ogg' : 'webm';
+        form.append('audio',blob,'recording.'+ext);
+        const response = await fetch(`${API_BASE}/api/transcribe`,{method:'POST',body:form,signal:AbortSignal.timeout(35000)});
+        const result = await response.json().catch(()=>({}));
+        if (!response.ok || !result.text) throw new Error(result.error || 'Speech recognition could not transcribe this recording.');
+        handleVoiceTranscript(result.text);
+      } catch(error) {
+        setLiveVoiceState('transcription error',error.message || 'Speech transcription failed');
+        showToast(error.message || 'Voice transcription failed');
+        voiceConversationBusy = false;
+        if (liveVoiceActive) setTimeout(()=>startVoiceRecording({live:true}),500);
+      }
+    };
+    voiceRecorder.start();
+    liveVoicePanel.hidden = false;
+    if (live) {
+      liveVoiceButton.classList.add('listening');
+      liveVoiceLabel.textContent = 'pause live voice';
+      setLiveVoiceState('listening','Listening for up to 8 seconds; speak now');
+      voiceRecordingTimer = setTimeout(()=>{ if(voiceRecorder?.state==='recording') voiceRecorder.stop(); },8000);
+    } else {
+      voiceButton.classList.add('listening');
+      voiceLabel.textContent = 'stop recording';
+      voiceStatus.textContent = 'recording · tap stop when finished speaking';
+      setLiveVoiceState('recording','Microphone recording in progress');
+    }
+  } catch(error) {
+    cleanupVoiceStream();
+    const msg = error.name === 'NotAllowedError' ? 'Microphone permission was denied. Allow access in browser settings.' : error.message || 'Unable to access the microphone.';
+    voiceCapability.textContent = msg;
+    setLiveVoiceState('mic error',msg);
+    showToast(msg);
+    if(live) stopLiveVoice();
+  }
+}
+
+function cleanupVoiceStream() {
+  if (voiceRecordingTimer) clearTimeout(voiceRecordingTimer);
+  voiceRecordingTimer = null;
+  if (voiceStream) voiceStream.getTracks().forEach(track=>track.stop());
+  voiceStream = null;
+  voiceButton.classList.remove('listening');
+  voiceLabel.textContent = 'voice input';
+  voiceStatus.textContent = '';
+}
+
+function startVoiceInput() {
+  if (voiceRecorder?.state === 'recording' && !voiceRecordingLive) {
+    voiceRecorder.stop();
+    return;
+  }
+  startVoiceRecording({live:false});
 }
 
 function setLiveVoiceState(label, status = label) {
@@ -196,29 +263,32 @@ function setLiveVoiceState(label, status = label) {
 }
 
 function speakReplyAloud(text) {
-  if (!('speechSynthesis' in window)) {
-    setLiveVoiceState('text only', 'browser speech output is unavailable · reply ready');
+  if (!('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
+    setLiveVoiceState('text only','speech playback is unavailable in this browser · reply shown on screen');
     voiceConversationBusy = false;
-    if (liveVoiceActive) beginListening();
+    if (liveVoiceActive) startVoiceRecording({live:true});
     return;
   }
-
-  recognition?.abort();
-  voiceConversationBusy = true;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.02;
-  utterance.pitch = .95;
-  utterance.onstart = () => setLiveVoiceState('speaking', 'JARVIS is reading the reply aloud');
+  utterance.rate = 1;
+  utterance.pitch = 0.96;
+  const chooseVoice = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => /en[-_](GB|US)/i.test(v.lang) && /natural|enhanced/i.test(v.name)) || voices.find(v => /^en[-_]/i.test(v.lang));
+    if (preferred) utterance.voice = preferred;
+  };
+  chooseVoice();
+  utterance.onstart = () => setLiveVoiceState('speaking','JARVIS is reading the reply aloud');
   utterance.onend = () => {
     voiceConversationBusy = false;
-    if (liveVoiceActive) beginListening();
-    else setLiveVoiceState('paused', 'reply read aloud');
+    if (liveVoiceActive) startVoiceRecording({live:true});
+    else setLiveVoiceState('paused','reply read aloud');
   };
-  utterance.onerror = () => {
+  utterance.onerror = event => {
     voiceConversationBusy = false;
-    setLiveVoiceState('text only', 'reply ready · speech output was interrupted');
-    if (liveVoiceActive) beginListening();
+    setLiveVoiceState('text only',`reply ready · speech synthesis ${event.error || 'failed'}`);
+    if (liveVoiceActive) startVoiceRecording({live:true});
   };
   window.speechSynthesis.speak(utterance);
 }
@@ -230,85 +300,58 @@ function handleVoiceTranscript(transcript) {
   state.incoming = cleanTranscript;
   renderContext();
   voiceConversationBusy = true;
-  setLiveVoiceState('thinking', 'transcript captured · asking managed AI for a reply');
-  generate({ speakReply: true }).finally(() => {
-    if (!('speechSynthesis' in window) || !window.speechSynthesis.speaking) {
+  setLiveVoiceState('thinking','Transcript captured · generating a reply');
+  generate({ speakReply: liveVoiceActive }).finally(() => {
+    if (!liveVoiceActive) voiceConversationBusy = false;
+    else if (!window.speechSynthesis?.speaking) {
       voiceConversationBusy = false;
-      if (liveVoiceActive) beginListening();
+      setTimeout(()=>startVoiceRecording({live:true}),500);
     }
   });
 }
 
 function beginListening() {
-  if (!recognition || !liveVoiceActive || voiceConversationBusy) return;
-  try {
-    recognition.start();
-  } catch (error) {
-    if (error.name !== 'InvalidStateError') {
-      setLiveVoiceState('mic error', 'allow microphone access and try again');
-    }
-  }
+  // Retained as a compatibility stub; microphone input uses MediaRecorder.
 }
 
 function stopLiveVoice() {
   liveVoiceActive = false;
   voiceConversationBusy = false;
-  recognition?.stop();
+  if (voiceRecordingTimer) clearTimeout(voiceRecordingTimer);
+  voiceRecordingTimer = null;
+  if (voiceRecorder?.state === 'recording') { voiceRecorder.stop(); }
+  else cleanupVoiceStream();
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
   liveVoiceLabel.textContent = 'live voice';
-  setLiveVoiceState('paused', 'live voice paused · reply mode remains active');
+  setLiveVoiceState('paused','live voice paused · reply mode remains active');
 }
 
 function startLiveVoice() {
-  if (!recognition) {
-    showToast('Live voice needs Chrome or Edge microphone support');
-    return;
+  // Prime browser speech output inside the user's click gesture (mobile browsers may gate later playback).
+  if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+    window.speechSynthesis.cancel();
+    const unlock = new SpeechSynthesisUtterance(' ');
+    unlock.volume = 0;
+    window.speechSynthesis.speak(unlock);
   }
   liveVoiceActive = true;
   liveVoicePanel.hidden = false;
-  liveVoiceButton.classList.add('listening');
-  liveVoiceLabel.textContent = 'pause live voice';
-  setLiveVoiceState('listening', 'voice channel open · speak naturally');
-  beginListening();
+  startVoiceRecording({live:true});
 }
 
 function setupLiveVoice() {
   liveVoicePanel.hidden = true;
-  if (!SpeechRecognition) {
+  const supported = Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
+  if (!supported) {
     liveVoiceButton.disabled = true;
     liveVoiceLabel.textContent = 'live voice unavailable';
-    voiceCapability.textContent = 'use Chrome or Edge for microphone input';
+    voiceButton.disabled = true;
+    voiceCapability.textContent = 'microphone recording needs a supported browser and HTTPS';
     return;
   }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onstart = () => setLiveVoiceState('listening', 'voice channel open · speak naturally');
-  recognition.onresult = event => {
-    let interim = '';
-    let finalText = '';
-    for (let index = event.resultIndex; index < event.results.length; index += 1) {
-      const transcript = event.results[index][0].transcript;
-      if (event.results[index].isFinal) finalText += transcript;
-      else interim += transcript;
-    }
-    if (interim) setLiveVoiceState('listening', `hearing: ${interim}`);
-    if (finalText) handleVoiceTranscript(finalText);
-  };
-  recognition.onerror = event => {
-    if (event.error === 'aborted') return;
-    const message = event.error === 'not-allowed'
-      ? 'microphone permission was denied'
-      : `voice channel error · ${event.error}`;
-    setLiveVoiceState('mic error', message);
-    if (event.error === 'not-allowed') stopLiveVoice();
-  };
-  recognition.onend = () => {
-    if (liveVoiceActive && !voiceConversationBusy) setTimeout(beginListening, 180);
-  };
+  voiceCapability.textContent = 'microphone ready · browser permission required';
+  if (!('speechSynthesis' in window)) voiceCapability.textContent += ' · speech output unavailable';
 }
 
 async function checkApi() {
@@ -367,7 +410,7 @@ $('generateButton').addEventListener('click', generate);
 incomingInput.addEventListener('keydown', event => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
 });
-voiceButton.addEventListener('click', simulateVoice);
+voiceButton.addEventListener('click', startVoiceInput);
 liveVoiceButton.addEventListener('click', () => {
   if (liveVoiceActive) stopLiveVoice();
   else startLiveVoice();
@@ -376,7 +419,7 @@ stopSpeakingButton.addEventListener('click', () => {
   window.speechSynthesis?.cancel();
   voiceConversationBusy = false;
   setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'reply audio stopped');
-  if (liveVoiceActive) beginListening();
+  if (liveVoiceActive) startVoiceRecording({live:true});
 });
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
@@ -394,7 +437,7 @@ $('newThreadButton').addEventListener('click', () => {
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
-$('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
+
 
 setupLiveVoice();
 setupPwa();
