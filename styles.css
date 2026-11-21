@@ -336,3 +336,8 @@ textarea::placeholder, input::placeholder { color: #858585; }
 .sidebar.collapsed { width:66px; min-width:66px; }
 .sidebar.collapsed .sidebar-brand, .sidebar.collapsed .sidebar-nav, .sidebar.collapsed .sidebar-section-label, .sidebar.collapsed .thread-item, .sidebar.collapsed .sidebar-footer, .sidebar.collapsed .new-chat-button span:last-child { display:none; }
 .sidebar.collapsed .new-chat-button { justify-content:center; }
+
+.small-button { padding:2px; color:var(--accent); background:transparent; border:0; cursor:pointer; font:8px var(--mono); }
+.small-button:hover { color:var(--accent-strong); }
+.empty-suggestions { color:var(--faint); font-size:11px; line-height:1.5; }
+.suggestions-section { padding:18px 0; border-bottom:1px solid #303030; }
