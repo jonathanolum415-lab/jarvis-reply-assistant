@@ -331,10 +331,9 @@ function startLiveVoice() {
   // Prime browser speech output inside the user's click gesture (mobile browsers may gate later playback).
   if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
     window.speechSynthesis.cancel();
-    const unlock = new SpeechSynthesisUtterance('');
+    const unlock = new SpeechSynthesisUtterance(' ');
     unlock.volume = 0;
     window.speechSynthesis.speak(unlock);
-    window.speechSynthesis.cancel();
   }
   liveVoiceActive = true;
   liveVoicePanel.hidden = false;
