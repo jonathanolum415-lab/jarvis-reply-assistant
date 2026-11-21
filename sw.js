@@ -1,5 +1,4 @@
-const CACHE_NAME = 'jarvis-shell-v6';
-const APP_SHELL = ['./'];
+const CACHE_NAME = 'jarvis-shell-v7';
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -31,6 +30,25 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => caches.open(CACHE_NAME).then(cache => cache.match('./')))
+    );
+    return;
+  }
+
+  if (event.request.destination === 'script' || event.request.destination === 'style') {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async cache => {
+        const cached = await cache.match(event.request);
+        try {
+          const response = await fetch(event.request, { cache: 'no-cache' });
+          if (response.ok) {
+            await cache.put(event.request, response.clone());
+            return response;
+          }
+          return cached || response;
+        } catch {
+          return cached || Response.error();
+        }
+      })
     );
     return;
   }
