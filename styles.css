@@ -321,3 +321,18 @@ textarea::placeholder, input::placeholder { color: #858585; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Draft editor, saved items, settings and collapsed navigation */
+.draft-editor-wrap { margin:12px 0 6px; display:flex; flex-direction:column; gap:7px; }
+.draft-editor-wrap label { color:var(--muted); font:9px var(--mono); text-transform:uppercase; letter-spacing:.07em; }
+.draft-editor-wrap textarea { border:1px solid #444; border-radius:8px; background:#242424; min-height:65px; }
+.saved-draft-list { display:flex; flex-direction:column; gap:6px; margin-top:9px; }
+.saved-draft-item { display:flex; align-items:center; gap:8px; padding:7px; border:1px solid #373737; border-radius:7px; font-size:10px; color:var(--muted); }
+.saved-draft-item span { flex:1; overflow-wrap:anywhere; }
+.settings-dialog { color:var(--text); background:var(--surface); border:1px solid #444; border-radius:12px; max-width:min(90vw,420px); }
+.settings-dialog::backdrop { background:rgba(0,0,0,.65); }
+.settings-dialog form { display:flex; flex-direction:column; gap:12px; padding:12px; }
+.settings-dialog button { color:var(--accent); background:transparent; border:1px solid #444; border-radius:7px; padding:8px; cursor:pointer; }
+.sidebar.collapsed { width:66px; min-width:66px; }
+.sidebar.collapsed .sidebar-brand, .sidebar.collapsed .sidebar-nav, .sidebar.collapsed .sidebar-section-label, .sidebar.collapsed .thread-item, .sidebar.collapsed .sidebar-footer, .sidebar.collapsed .new-chat-button span:last-child { display:none; }
+.sidebar.collapsed .new-chat-button { justify-content:center; }
