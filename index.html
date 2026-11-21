@@ -27,26 +27,19 @@
               <div class="brand-subtitle">reply intelligence / v0.1</div>
             </div>
           </div>
-          <button class="sidebar-collapse" aria-label="Collapse sidebar">‹</button>
         </div>
 
         <button class="new-chat-button" id="newThreadButton"><span class="new-chat-plus">+</span><span>New chat</span></button>
 
         <nav class="sidebar-nav" aria-label="Workspace navigation">
           <button class="sidebar-nav-item active"><span class="nav-glyph">⌂</span><span>Reply workspace</span></button>
-          <button class="sidebar-nav-item"><span class="nav-glyph">⌕</span><span>Search chats</span></button>
         </nav>
 
-        <div class="sidebar-section-label">Recent</div>
-        <button class="thread-item active">
+        <div class="sidebar-section-label">Current thread</div>
+        <div class="thread-item active" aria-current="page">
           <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Study session</strong><small>Reply workspace</small></span>
-          <span class="thread-more">•••</span>
-        </button>
-        <button class="thread-item">
-          <span class="thread-glyph">◌</span>
-          <span class="thread-copy"><strong>Reply ideas</strong><small>Yesterday</small></span>
-        </button>
+          <span class="thread-copy"><strong>Current thread</strong><small>Local conversation</small></span>
+        </div>
 
         <div class="sidebar-spacer"></div>
         <div class="sidebar-footer">
@@ -66,7 +59,6 @@
           <div class="topbar-actions">
             <div class="topbar-status"><span class="status-dot"></span><span>reply mode active</span></div>
             <button class="install-button" id="installButton" hidden>install app</button>
-            <button class="icon-button" id="settingsButton" aria-label="Open settings">⌘</button>
           </div>
         </header>
 
@@ -75,7 +67,7 @@
             <div class="section-heading conversation-heading">
               <div>
                 <p class="eyebrow">Active conversation</p>
-                <h1>Jonah <span class="online-pill">online</span></h1>
+                <h1>Conversation <span class="online-pill">local</span></h1>
               </div>
               <span class="conversation-mode">Manual context</span>
             </div>
@@ -83,8 +75,8 @@
             <div class="conversation-meta">
               <div class="avatar avatar-jonah">J</div>
               <div>
-                <strong>Jonah N.</strong>
-                <span>last seen just now · 3-turn context loaded</span>
+                <strong>Contact</strong>
+                <span>manual context · no live chat connection</span>
               </div>
               <div class="meta-spacer"></div>
               <span class="channel-label">MANUAL PASTE / WHATSAPP</span>
