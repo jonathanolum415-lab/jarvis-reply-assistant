@@ -61,24 +61,18 @@ function parseMultipartAudio(body, contentType) {
   const match = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
   const boundary = match && (match[1] || match[2]).trim();
   if (!boundary) throw Object.assign(new Error('Multipart boundary is missing.'), {status:400});
-  const delimiter = Buffer.from('--' + boundary);
-  let cursor = 0;
-  while ((cursor = body.indexOf(delimiter, cursor)) !== -1) {
-    cursor += delimiter.length;
-    if (body[cursor] === 45 && body[cursor + 1] === 45) break;
-    if (body[cursor] === 13 && body[cursor + 1] === 10) cursor += 2;
-    const headerEnd = body.indexOf(Buffer.from('\\r\\n\\r\\n'), cursor);
-    if (headerEnd === -1) break;
-    const headers = body.subarray(cursor, headerEnd).toString('utf8');
-    const dataStart = headerEnd + 4;
-    let dataEnd = body.indexOf(Buffer.from('\\r\\n'), dataStart);
-    if (dataEnd === -1) break;
-    const disposition = headers.match(/content-disposition:\s*form-data;[^\\r\\n]*name="([^"]+)"(?:;[^\\r\\n]*filename="([^"]*)")?/i);
+  const parts = body.toString('latin1').split('--' + boundary);
+  for (const part of parts) {
+    const section = part.replace(/^\r\n/, '').replace(/\r\n--$/, '');
+    const headerEnd = section.indexOf('\r\n\r\n');
+    if (headerEnd < 0) continue;
+    const headers = section.slice(0,headerEnd);
+    const dataText = section.slice(headerEnd + 4).replace(/\r\n$/, '');
+    const disposition = headers.match(/content-disposition:\s*form-data;[^\r\n]*name="([^"]+)"(?:;[^\r\n]*filename="([^"]*)")?/i);
     if (disposition && disposition[1] === 'audio' && disposition[2]) {
-      const mime = headers.match(/content-type:\s*([^\\r\\n]+)/i)?.[1]?.trim() || 'audio/webm';
-      return {data:body.subarray(dataStart,dataEnd),filename:disposition[2],mime};
+      const mime = headers.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim() || 'audio/webm';
+      return {data:Buffer.from(dataText,'latin1'),filename:disposition[2],mime};
     }
-    cursor = dataEnd + 2;
   }
   throw Object.assign(new Error('Audio file was not found in the upload.'), {status:400});
 }
