@@ -256,14 +256,14 @@ function beginListening() {
   }
 }
 
-function stopLiveVoice() {
+function stopLiveVoice(status = 'live voice paused · reply mode remains active', stateLabel = 'paused') {
   liveVoiceActive = false;
   voiceConversationBusy = false;
   recognition?.stop();
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
   liveVoiceLabel.textContent = 'live voice';
-  setLiveVoiceState('paused', 'live voice paused · reply mode remains active');
+  setLiveVoiceState(stateLabel, status);
 }
 
 function startLiveVoice() {
@@ -310,7 +310,9 @@ function setupLiveVoice() {
       ? 'microphone permission was denied'
       : `voice channel error · ${event.error}`;
     setLiveVoiceState('mic error', message);
-    if (event.error === 'not-allowed') stopLiveVoice();
+    if (event.error === 'not-allowed') {
+      stopLiveVoice('microphone permission was denied · allow microphone access and try again', 'mic error');
+    }
   };
   recognition.onend = () => {
     if (liveVoiceActive && !voiceConversationBusy) setTimeout(beginListening, 180);
