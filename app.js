@@ -306,12 +306,18 @@ function setupLiveVoice() {
   };
   recognition.onerror = event => {
     if (event.error === 'aborted') return;
-    const message = event.error === 'not-allowed'
-      ? 'microphone permission was denied'
-      : `voice channel error · ${event.error}`;
-    setLiveVoiceState('mic error', message);
-    if (event.error === 'not-allowed') {
-      stopLiveVoice('microphone permission was denied · allow microphone access and try again', 'mic error');
+    const messages = {
+      'not-allowed': 'microphone permission was denied · allow microphone access and try again',
+      'service-not-allowed': 'browser speech service permission was denied · try Chrome or Edge',
+      'audio-capture': 'no microphone was found · connect a microphone and try again',
+      network: 'browser speech service is unavailable · check your connection and try again'
+    };
+    const message = messages[event.error] || `voice channel error · ${event.error}`;
+    const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(event.error);
+    if (fatal) {
+      stopLiveVoice(message, 'mic error');
+    } else {
+      setLiveVoiceState('mic error', message);
     }
   };
   recognition.onend = () => {
