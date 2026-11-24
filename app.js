@@ -165,6 +165,8 @@ function stopDictation(message = 'transcript ready · review before sending') {
   dictationActive = false;
   dictationRecognition?.stop();
   voiceButton.classList.remove('listening');
+  voiceButton.setAttribute('aria-label', 'Dictate message');
+  voiceButton.title = 'Dictate message';
   voiceLabel.textContent = 'Dictate';
   voiceStatus.textContent = message;
 }
@@ -184,6 +186,8 @@ function startDictation() {
   dictationRecognition.lang = navigator.language || 'en-US';
   dictationActive = true;
   voiceButton.classList.add('listening');
+  voiceButton.setAttribute('aria-label', 'Stop dictation');
+  voiceButton.title = 'Stop dictation';
   voiceLabel.textContent = 'Listening…';
   voiceStatus.textContent = 'Listening · speak now';
   dictationRecognition.onresult = event => {
@@ -280,6 +284,8 @@ function stopLiveVoice(status = 'live voice paused · reply mode remains active'
   recognition?.stop();
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
+  liveVoiceButton.setAttribute('aria-label', 'Start live voice');
+  liveVoiceButton.title = 'Start live voice';
   liveVoiceLabel.textContent = 'live voice';
   setLiveVoiceState(stateLabel, status);
 }
@@ -296,6 +302,8 @@ function startLiveVoice() {
   liveVoiceActive = true;
   liveVoicePanel.hidden = false;
   liveVoiceButton.classList.add('listening');
+  liveVoiceButton.setAttribute('aria-label', 'Pause live voice');
+  liveVoiceButton.title = 'Pause live voice';
   liveVoiceLabel.textContent = 'pause live voice';
   setLiveVoiceState('listening', 'voice channel open · speak naturally');
   beginListening();
@@ -305,6 +313,8 @@ function setupLiveVoice() {
   liveVoicePanel.hidden = true;
   if (!SpeechRecognition) {
     liveVoiceButton.disabled = true;
+    liveVoiceButton.setAttribute('aria-label', 'Live voice unavailable');
+    liveVoiceButton.title = 'Live voice unavailable';
     liveVoiceLabel.textContent = 'live voice unavailable';
     voiceCapability.textContent = 'use Chrome or Edge for microphone input';
     return;
