@@ -125,6 +125,7 @@ async function generate({ speakReply = false } = {}) {
   renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
+  let generatedReply = '';
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
@@ -143,6 +144,7 @@ async function generate({ speakReply = false } = {}) {
     const reply = typeof payload.reply === 'string' ? payload.reply.trim() : '';
     if (!reply) throw new Error('The AI API returned an empty reply. Please try again.');
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
+    generatedReply = reply;
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready');
   } catch (error) {
@@ -155,9 +157,8 @@ async function generate({ speakReply = false } = {}) {
     $('generateButton').disabled = false;
   }
 
-  const reply = state.turns.findLast(turn => turn.assistant)?.text || '';
-  if (speakReply && reply) speakReplyAloud(reply);
-  return reply;
+  if (speakReply && generatedReply) speakReplyAloud(generatedReply);
+  return generatedReply;
 }
 
 function stopDictation(message = 'transcript ready · review before sending') {
