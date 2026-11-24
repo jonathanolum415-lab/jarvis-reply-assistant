@@ -99,8 +99,14 @@
                 <textarea id="incomingInput" rows="1" aria-label="Message JARVIS" placeholder="Message JARVIS..."></textarea>
                 <div class="composer-actions">
                   <div class="voice-actions">
-                    <button class="voice-button" id="voiceButton"><span class="mic-glyph" aria-hidden="true">🎙</span><span id="voiceLabel">Dictate</span></button>
-                    <button class="voice-button live-voice-button" id="liveVoiceButton"><span class="mic-glyph" aria-hidden="true">◉</span><span id="liveVoiceLabel">Start live voice</span></button>
+                    <button class="voice-button icon-only-button" id="voiceButton" type="button" aria-label="Dictate message" title="Dictate message">
+                      <svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2.5" width="6" height="12" rx="3"></rect><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3.5M8.5 21.5h7"></path></svg>
+                      <span class="sr-only" id="voiceLabel">Dictate</span>
+                    </button>
+                    <button class="voice-button live-voice-button icon-only-button" id="liveVoiceButton" type="button" aria-label="Start live voice" title="Start live voice">
+                      <svg class="voice-icon live-voice-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10v4M7 6v12M11 3v18M15 7v10M19 10v4M22 11v2"></path></svg>
+                      <span class="sr-only" id="liveVoiceLabel">Start live voice</span>
+                    </button>
                   </div>
                   <div class="composer-right-actions">
                     <span class="shortcut">Enter to send · Shift + Enter for a new line</span>
