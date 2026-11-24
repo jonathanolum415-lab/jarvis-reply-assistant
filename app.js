@@ -4,25 +4,11 @@ const state = {
   voicePhase: 'idle',
   explanation: '',
   replyPending: false,
-  turns: [
-    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
-    { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
-  ],
-  context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
+  turns: [],
+  context: []
 };
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplies = {
-  Professional: 'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-  Friendly: 'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-  Funny: 'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-  Short: 'Perfect, see you after lunch. Send the notes too?',
-  Apologetic: 'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-  Romantic: 'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-  JARVIS: 'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.'
-};
-
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
 const modeGrid = $('modeGrid');
@@ -117,12 +103,13 @@ function renderModes() {
 function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
   contextSummary.textContent = state.incoming
-    ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
+    ? 'JARVIS is using the messages in this conversation to understand the current request.'
+    : 'Your conversation context will appear here as you add messages.';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
 async function generate({ speakReply = false } = {}) {
+  if (state.replyPending) return '';
   const text = incomingInput.value.trim();
   if (!text) {
     showToast('Add an incoming message or use voice input first');
@@ -153,15 +140,15 @@ async function generate({ speakReply = false } = {}) {
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.explanation = payload.explanation || '';
-    const reply = payload.reply || 'I have a reply ready.';
+    const reply = typeof payload.reply === 'string' ? payload.reply.trim() : '';
+    if (!reply) throw new Error('The AI API returned an empty reply. Please try again.');
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready');
   } catch (error) {
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true });
-    generatingState.textContent = 'offline fallback';
-    showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
+    generatingState.textContent = 'AI unavailable';
+    showToast(error.message || 'The AI API is unavailable. No reply was generated.');
   } finally {
     state.replyPending = false;
     renderMessages();
@@ -417,7 +404,7 @@ incomingInput.addEventListener('input', () => {
   incomingInput.style.height = `${Math.min(incomingInput.scrollHeight, 220)}px`;
 });
 incomingInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !state.replyPending) {
     event.preventDefault();
     generate();
   }
