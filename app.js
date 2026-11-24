@@ -47,6 +47,8 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   : '';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let dictationRecognition = null;
+let dictationActive = false;
 let liveVoiceActive = false;
 let voiceConversationBusy = false;
 let deferredInstallPrompt = null;
@@ -171,29 +173,57 @@ async function generate({ speakReply = false } = {}) {
   return reply;
 }
 
-function simulateVoice() {
-  if (state.voicePhase !== 'idle') return;
-  state.voicePhase = 'listening';
-  voiceButton.classList.add('listening');
-  voiceLabel.textContent = 'listening…';
-  voiceStatus.textContent = 'voice channel open · speak now';
+function stopDictation(message = 'transcript ready · review before sending') {
+  dictationActive = false;
+  dictationRecognition?.stop();
+  voiceButton.classList.remove('listening');
+  voiceLabel.textContent = 'Dictate';
+  voiceStatus.textContent = message;
+}
 
-  setTimeout(() => {
-    state.voicePhase = 'processing';
-    voiceLabel.textContent = 'processing…';
-    voiceStatus.textContent = 'transcribing audio into message context';
-    setTimeout(() => {
-      state.voicePhase = 'idle';
-      const transcript = 'That sounds great. Tomorrow after lunch works for me — please send the notes when you can.';
-      incomingInput.value = transcript;
-      state.incoming = transcript;
+function startDictation() {
+  if (!SpeechRecognition) {
+    showToast('Speech input is not supported in this browser. Try a recent version of Safari or Chrome.');
+    return;
+  }
+  if (dictationActive) {
+    stopDictation('dictation stopped');
+    return;
+  }
+  dictationRecognition = new SpeechRecognition();
+  dictationRecognition.continuous = false;
+  dictationRecognition.interimResults = true;
+  dictationRecognition.lang = navigator.language || 'en-US';
+  dictationActive = true;
+  voiceButton.classList.add('listening');
+  voiceLabel.textContent = 'Listening…';
+  voiceStatus.textContent = 'Listening · speak now';
+  dictationRecognition.onresult = event => {
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i += 1) transcript += event.results[i][0].transcript;
+    incomingInput.value = transcript;
+    incomingInput.dispatchEvent(new Event('input'));
+  };
+  dictationRecognition.onerror = event => {
+    const messages = {
+      'not-allowed': 'Microphone permission denied · allow access in browser settings',
+      'audio-capture': 'No microphone detected',
+      network: 'Speech recognition needs an internet connection'
+    };
+    stopDictation(messages[event.error] || `Dictation error · ${event.error}`);
+  };
+  dictationRecognition.onend = () => {
+    if (dictationActive) stopDictation();
+    else {
       voiceButton.classList.remove('listening');
-      voiceLabel.textContent = 'simulate voice';
-      voiceStatus.textContent = 'transcript ready · review before generating';
-      renderContext();
-      showToast('Voice transcript ready for review');
-    }, 900);
-  }, 1100);
+      voiceLabel.textContent = 'Dictate';
+    }
+  };
+  try {
+    dictationRecognition.start();
+  } catch (error) {
+    stopDictation(error.message || 'Could not start microphone');
+  }
 }
 
 function setLiveVoiceState(label, status = label) {
@@ -267,6 +297,10 @@ function stopLiveVoice(status = 'live voice paused · reply mode remains active'
 }
 
 function startLiveVoice() {
+  if (!window.isSecureContext) {
+    showToast('Live voice requires HTTPS. Open the secure deployed JARVIS address.');
+    return;
+  }
   if (!recognition) {
     showToast('Live voice needs Chrome or Edge microphone support');
     return;
@@ -377,11 +411,18 @@ function setupPwa() {
   });
 }
 
-$('generateButton').addEventListener('click', generate);
-incomingInput.addEventListener('keydown', event => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
+$('generateButton').addEventListener('click', () => generate());
+incomingInput.addEventListener('input', () => {
+  incomingInput.style.height = 'auto';
+  incomingInput.style.height = `${Math.min(incomingInput.scrollHeight, 220)}px`;
 });
-voiceButton.addEventListener('click', simulateVoice);
+incomingInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    generate();
+  }
+});
+voiceButton.addEventListener('click', startDictation);
 liveVoiceButton.addEventListener('click', () => {
   if (liveVoiceActive) stopLiveVoice();
   else startLiveVoice();
