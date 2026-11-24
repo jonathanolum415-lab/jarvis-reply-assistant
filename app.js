@@ -405,9 +405,9 @@ incomingInput.addEventListener('input', () => {
   incomingInput.style.height = `${Math.min(incomingInput.scrollHeight, 220)}px`;
 });
 incomingInput.addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && !state.replyPending) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
     event.preventDefault();
-    generate();
+    if (!state.replyPending) generate();
   }
 });
 voiceButton.addEventListener('click', startDictation);
