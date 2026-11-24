@@ -313,3 +313,68 @@ textarea::placeholder, input::placeholder { color: #858585; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* ChatGPT-inspired responsive message composer */
+.composer-wrap { padding-bottom: 22px; }
+.composer-label { display: none; }
+.composer {
+  border: 1px solid #565656;
+  border-radius: 25px;
+  background: #303030;
+  box-shadow: 0 4px 22px rgba(0,0,0,.2);
+}
+.composer:focus-within { border-color: #777; box-shadow: 0 0 0 1px rgba(255,255,255,.04); }
+.composer textarea {
+  min-height: 54px;
+  max-height: 220px;
+  padding: 17px 19px 8px;
+  resize: none;
+  font: 15px/1.5 var(--sans);
+}
+.composer-actions { min-height: 54px; padding: 5px 9px 9px 12px; }
+.voice-actions { align-items: center; gap: 7px; }
+.voice-button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid #555;
+  border-radius: 20px;
+  color: #ddd;
+  font: 11px var(--sans);
+}
+.voice-button:hover, .voice-button.listening {
+  color: #fff;
+  background: #414141;
+  border-color: var(--accent);
+}
+.voice-button.listening .mic-glyph { color: #ff7777; }
+.live-voice-button { color: var(--accent-strong); border-color: rgba(116,217,220,.35); }
+.mic-glyph { font-size: 14px; }
+.primary-button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font: 700 22px var(--sans);
+}
+.composer-right-actions { gap: 8px; }
+.shortcut { font-size: 8px; }
+.voice-status { min-height: 15px; }
+.live-voice-panel { border-radius: 16px; }
+@media (max-width: 700px) {
+  .composer-wrap { position: relative; width: calc(100% - 24px); padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .composer { border-radius: 22px; }
+  .composer textarea { min-height: 52px; font-size: 16px; }
+  .composer-actions { align-items: center; flex-direction: row; padding: 5px 8px 8px; }
+  .voice-actions { width: auto; flex: 1; }
+  .voice-button { min-height: 38px; flex: 0 1 auto; }
+  .composer-right-actions { width: auto; flex-direction: row; align-items: center; }
+  .shortcut { display: none; }
+  .primary-button { min-width: 38px; min-height: 38px; }
+}
+@media (max-width: 380px) {
+  .voice-button { padding-inline: 9px; font-size: 10px; }
+  .composer-actions { gap: 4px; }
+}
