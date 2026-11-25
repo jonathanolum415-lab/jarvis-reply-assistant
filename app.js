@@ -312,11 +312,13 @@ function startLiveVoice() {
 function setupLiveVoice() {
   liveVoicePanel.hidden = true;
   if (!SpeechRecognition) {
-    liveVoiceButton.disabled = true;
-    liveVoiceButton.setAttribute('aria-label', 'Live voice unavailable');
-    liveVoiceButton.title = 'Live voice unavailable';
-    liveVoiceLabel.textContent = 'live voice unavailable';
-    voiceCapability.textContent = 'use Chrome or Edge for microphone input';
+    // Keep the live-voice icon visible and tappable on every device.
+    // startLiveVoice() explains browser support when the user presses it.
+    liveVoiceButton.disabled = false;
+    liveVoiceButton.setAttribute('aria-label', 'Start live voice');
+    liveVoiceButton.title = 'Start live voice';
+    liveVoiceLabel.textContent = 'Start live voice';
+    voiceCapability.textContent = 'live microphone support depends on your browser';
     return;
   }
 
