@@ -18,12 +18,6 @@ const incomingInput = $('incomingInput');
 const voiceButton = $('voiceButton');
 const voiceLabel = $('voiceLabel');
 const voiceStatus = $('voiceStatus');
-const liveVoiceButton = $('liveVoiceButton');
-const liveVoiceLabel = $('liveVoiceLabel');
-const liveVoicePanel = $('liveVoicePanel');
-const liveVoiceState = $('liveVoiceState');
-const stopSpeakingButton = $('stopSpeakingButton');
-const voiceCapability = $('voiceCapability');
 const installButton = $('installButton');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
@@ -32,11 +26,8 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://jarvisreply-dvh8yfjn.manus.space'
   : '';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
 let dictationRecognition = null;
 let dictationActive = false;
-let liveVoiceActive = false;
-let voiceConversationBusy = false;
 let deferredInstallPrompt = null;
 
 function escapeHtml(text) {
@@ -108,7 +99,7 @@ function renderContext() {
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
-async function generate({ speakReply = false } = {}) {
+async function generate() {
   if (state.replyPending) return '';
   const text = incomingInput.value.trim();
   if (!text) {
@@ -125,8 +116,6 @@ async function generate({ speakReply = false } = {}) {
   renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
-  let generatedReply = '';
-
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
       method: 'POST',
@@ -144,7 +133,6 @@ async function generate({ speakReply = false } = {}) {
     const reply = typeof payload.reply === 'string' ? payload.reply.trim() : '';
     if (!reply) throw new Error('The AI API returned an empty reply. Please try again.');
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
-    generatedReply = reply;
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready');
   } catch (error) {
@@ -157,8 +145,7 @@ async function generate({ speakReply = false } = {}) {
     $('generateButton').disabled = false;
   }
 
-  if (speakReply && generatedReply) speakReplyAloud(generatedReply);
-  return generatedReply;
+  return state.turns.findLast(turn => turn.assistant)?.text || '';
 }
 
 function stopDictation(message = 'transcript ready · review before sending') {
@@ -216,147 +203,6 @@ function startDictation() {
   } catch (error) {
     stopDictation(error.message || 'Could not start microphone');
   }
-}
-
-function setLiveVoiceState(label, status = label) {
-  liveVoiceState.textContent = label;
-  voiceStatus.textContent = status;
-}
-
-function speakReplyAloud(text) {
-  if (!('speechSynthesis' in window)) {
-    setLiveVoiceState('text only', 'browser speech output is unavailable · reply ready');
-    voiceConversationBusy = false;
-    if (liveVoiceActive) beginListening();
-    return;
-  }
-
-  recognition?.abort();
-  voiceConversationBusy = true;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 1.02;
-  utterance.pitch = .95;
-  utterance.onstart = () => setLiveVoiceState('speaking', 'JARVIS is reading the reply aloud');
-  utterance.onend = () => {
-    voiceConversationBusy = false;
-    if (liveVoiceActive) beginListening();
-    else setLiveVoiceState('paused', 'reply read aloud');
-  };
-  utterance.onerror = () => {
-    voiceConversationBusy = false;
-    setLiveVoiceState('text only', 'reply ready · speech output was interrupted');
-    if (liveVoiceActive) beginListening();
-  };
-  window.speechSynthesis.speak(utterance);
-}
-
-function handleVoiceTranscript(transcript) {
-  const cleanTranscript = transcript.trim();
-  if (!cleanTranscript || voiceConversationBusy) return;
-  incomingInput.value = cleanTranscript;
-  state.incoming = cleanTranscript;
-  renderContext();
-  voiceConversationBusy = true;
-  setLiveVoiceState('thinking', 'transcript captured · asking managed AI for a reply');
-  generate({ speakReply: true }).finally(() => {
-    if (!('speechSynthesis' in window) || !window.speechSynthesis.speaking) {
-      voiceConversationBusy = false;
-      if (liveVoiceActive) beginListening();
-    }
-  });
-}
-
-function beginListening() {
-  if (!recognition || !liveVoiceActive || voiceConversationBusy) return;
-  try {
-    recognition.start();
-  } catch (error) {
-    if (error.name !== 'InvalidStateError') {
-      setLiveVoiceState('mic error', 'allow microphone access and try again');
-    }
-  }
-}
-
-function stopLiveVoice(status = 'live voice paused · reply mode remains active', stateLabel = 'paused') {
-  liveVoiceActive = false;
-  voiceConversationBusy = false;
-  recognition?.stop();
-  window.speechSynthesis?.cancel();
-  liveVoiceButton.classList.remove('listening');
-  liveVoiceButton.setAttribute('aria-label', 'Start live voice');
-  liveVoiceButton.title = 'Start live voice';
-  liveVoiceLabel.textContent = 'live voice';
-  setLiveVoiceState(stateLabel, status);
-}
-
-function startLiveVoice() {
-  if (!window.isSecureContext) {
-    showToast('Live voice requires HTTPS. Open the secure deployed JARVIS address.');
-    return;
-  }
-  if (!recognition) {
-    showToast('Live voice needs Chrome or Edge microphone support');
-    return;
-  }
-  liveVoiceActive = true;
-  liveVoicePanel.hidden = false;
-  liveVoiceButton.classList.add('listening');
-  liveVoiceButton.setAttribute('aria-label', 'Pause live voice');
-  liveVoiceButton.title = 'Pause live voice';
-  liveVoiceLabel.textContent = 'pause live voice';
-  setLiveVoiceState('listening', 'voice channel open · speak naturally');
-  beginListening();
-}
-
-function setupLiveVoice() {
-  liveVoicePanel.hidden = true;
-  if (!SpeechRecognition) {
-    // Keep the live-voice icon visible and tappable on every device.
-    // startLiveVoice() explains browser support when the user presses it.
-    liveVoiceButton.disabled = false;
-    liveVoiceButton.setAttribute('aria-label', 'Start live voice');
-    liveVoiceButton.title = 'Start live voice';
-    liveVoiceLabel.textContent = 'Start live voice';
-    voiceCapability.textContent = 'live microphone support depends on your browser';
-    return;
-  }
-
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-  recognition.onstart = () => setLiveVoiceState('listening', 'voice channel open · speak naturally');
-  recognition.onresult = event => {
-    let interim = '';
-    let finalText = '';
-    for (let index = event.resultIndex; index < event.results.length; index += 1) {
-      const transcript = event.results[index][0].transcript;
-      if (event.results[index].isFinal) finalText += transcript;
-      else interim += transcript;
-    }
-    if (interim) setLiveVoiceState('listening', `hearing: ${interim}`);
-    if (finalText) handleVoiceTranscript(finalText);
-  };
-  recognition.onerror = event => {
-    if (event.error === 'aborted') return;
-    const messages = {
-      'not-allowed': 'microphone permission was denied · allow microphone access and try again',
-      'service-not-allowed': 'browser speech service permission was denied · try Chrome or Edge',
-      'audio-capture': 'no microphone was found · connect a microphone and try again',
-      network: 'browser speech service is unavailable · check your connection and try again'
-    };
-    const message = messages[event.error] || `voice channel error · ${event.error}`;
-    const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture', 'network'].includes(event.error);
-    if (fatal) {
-      stopLiveVoice(message, 'mic error');
-    } else {
-      setLiveVoiceState('mic error', message);
-    }
-  };
-  recognition.onend = () => {
-    if (liveVoiceActive && !voiceConversationBusy) setTimeout(beginListening, 180);
-  };
 }
 
 async function checkApi() {
@@ -423,16 +269,6 @@ incomingInput.addEventListener('keydown', event => {
   }
 });
 voiceButton.addEventListener('click', startDictation);
-liveVoiceButton.addEventListener('click', () => {
-  if (liveVoiceActive) stopLiveVoice();
-  else startLiveVoice();
-});
-stopSpeakingButton.addEventListener('click', () => {
-  window.speechSynthesis?.cancel();
-  voiceConversationBusy = false;
-  setLiveVoiceState(liveVoiceActive ? 'listening' : 'paused', liveVoiceActive ? 'audio stopped · speak again' : 'reply audio stopped');
-  if (liveVoiceActive) beginListening();
-});
 $('explainButton').addEventListener('click', () => {
   const reason = state.explanation || `JARVIS is using ${state.turns.length} turns, ${state.context.length} context signals, and the ${state.mode} tone.`;
   showToast(reason);
@@ -451,7 +287,6 @@ $('newThreadButton').addEventListener('click', () => {
 });
 $('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
 
-setupLiveVoice();
 setupPwa();
 renderMessages();
 renderModes();

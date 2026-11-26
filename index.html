@@ -73,20 +73,14 @@
             <div class="composer">
               <button class="composer-icon" aria-label="Add attachment">＋</button>
               <textarea id="incomingInput" rows="1" placeholder="Paste an incoming message…"></textarea>
-              <button class="composer-icon" id="voiceButton" aria-label="Simulate voice input"><span class="mic-glyph">◉</span><span id="voiceLabel" class="sr-only">simulate voice</span></button>
+              <button class="composer-icon" id="voiceButton" aria-label="Voice input"><span class="mic-glyph">◉</span><span id="voiceLabel" class="sr-only">Dictate</span></button>
               <button class="send-button" id="generateButton" aria-label="Generate reply">➤</button>
             </div>
             <div class="composer-tools">
               <div class="voice-tools">
-                <button class="tool-button" id="liveVoiceButton"><span class="mic-glyph">◎</span><span id="liveVoiceLabel">live voice</span></button>
                 <span class="shortcut">Ctrl ↵</span>
               </div>
               <span class="composer-hint">JARVIS will reply in this conversation</span>
-            </div>
-            <div class="live-voice-panel" id="liveVoicePanel" hidden>
-              <div class="live-voice-heading"><strong>live conversation channel</strong><span class="live-voice-state" id="liveVoiceState">standby</span></div>
-              <p>Speak normally. JARVIS listens and reads back a reply for you.</p>
-              <div class="live-voice-actions"><button class="text-button" id="stopSpeakingButton">stop audio</button><span id="voiceCapability">microphone permission required</span></div>
             </div>
           </div>
         </section>

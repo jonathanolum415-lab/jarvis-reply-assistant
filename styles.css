@@ -24,7 +24,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 
 .whatsapp-app { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: 320px minmax(0, 1fr) 300px; background: var(--wa-panel); }
 .chat-sidebar { min-width: 0; display: flex; flex-direction: column; background: var(--wa-sidebar); border-right: 1px solid var(--wa-border); }
-.wa-sidebar-header, .chat-header, .drawer-heading, .composer, .composer-tools, .chat-header-actions, .wa-sidebar-actions, .chat-row, .chat-row-meta, .drawer-label, .drawer-status, .live-voice-heading, .live-voice-actions { display: flex; align-items: center; }
+.wa-sidebar-header, .chat-header, .drawer-heading, .composer, .composer-tools, .chat-header-actions, .wa-sidebar-actions, .chat-row, .chat-row-meta, .drawer-label, .drawer-status { display: flex; align-items: center; }
 .wa-sidebar-header { justify-content: space-between; padding: 16px 18px; background: #2a3942; }
 .profile-avatar, .chat-avatar, .jarvis-orb { display: grid; flex: 0 0 auto; place-items: center; border-radius: 50%; font-weight: 600; }
 .profile-avatar { width: 40px; height: 40px; color: #d9fff4; background: #58756e; font-size: 17px; }
@@ -103,12 +103,6 @@ textarea::placeholder { color: var(--wa-muted); }
 .tool-button:hover, .text-button:hover { color: var(--wa-green); background: rgba(0,168,132,.1); }
 .mic-glyph { margin-right: 4px; color: var(--wa-green); }
 .shortcut, .composer-hint { color: var(--wa-muted); font: 8px var(--mono); }
-.live-voice-panel { margin-top: 9px; padding: 11px 13px; color: var(--wa-text); background: rgba(32,44,51,.96); border: 1px solid rgba(0,168,132,.3); border-radius: 8px; }
-.live-voice-heading { justify-content: space-between; gap: 12px; }
-.live-voice-heading strong { color: #d9fff4; font: 9px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
-.live-voice-state, #voiceCapability { color: var(--wa-muted); font: 8px var(--mono); }
-.live-voice-panel p { margin: 8px 0 10px; color: var(--wa-muted); font-size: 10px; }
-.live-voice-actions { justify-content: space-between; gap: 10px; }
 
 .jarvis-drawer { min-width: 0; overflow-y: auto; padding: 24px 18px; background: #182229; border-left: 1px solid var(--wa-border); }
 .drawer-heading { gap: 10px; padding-bottom: 18px; border-bottom: 1px solid var(--wa-border); }
