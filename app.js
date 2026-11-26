@@ -4,25 +4,11 @@ const state = {
   voicePhase: 'idle',
   explanation: '',
   replyPending: false,
-  turns: [
-    { from: 'Jonah', text: 'Hey, are we still on for the study session tomorrow?', time: '18:42' },
-    { from: 'You', text: 'Absolutely. I should be free after lunch.', time: '18:44', outgoing: true },
-    { from: 'Jonah', text: 'Perfect. I found a quiet spot near the library. I can send you the notes too.', time: '18:46' }
-  ],
-  context: ['study session tomorrow', 'after lunch', 'quiet spot near library', 'notes available']
+  turns: [],
+  context: []
 };
 
 const modes = ['Professional', 'Friendly', 'Funny', 'Short', 'Apologetic', 'Romantic', 'JARVIS'];
-const localReplies = {
-  Professional: 'That sounds good. Tomorrow after lunch works for me. I would appreciate the notes as well.',
-  Friendly: 'That sounds perfect! A quiet spot and the notes would be amazing. See you after lunch.',
-  Funny: 'A quiet study spot and notes? You have officially made procrastination harder. I’m in.',
-  Short: 'Perfect, see you after lunch. Send the notes too?',
-  Apologetic: 'Sorry for the slow reply. Tomorrow after lunch still works, and I’d really appreciate the notes.',
-  Romantic: 'That sounds lovely. I’d be happy to see you after lunch — send me the notes when you can.',
-  JARVIS: 'Confirmed. Tomorrow, post-meridian. Library vicinity. Notes accepted. I shall arrive prepared.'
-};
-
 const $ = id => document.getElementById(id);
 const messageStream = $('messageStream');
 const modeGrid = $('modeGrid');
@@ -47,6 +33,8 @@ const API_BASE = window.location.hostname.endsWith('github.io')
   : '';
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let dictationRecognition = null;
+let dictationActive = false;
 let liveVoiceActive = false;
 let voiceConversationBusy = false;
 let deferredInstallPrompt = null;
@@ -115,12 +103,13 @@ function renderModes() {
 function renderContext() {
   contextChips.innerHTML = state.context.map(item => `<span class="context-chip">${escapeHtml(item)}</span>`).join('');
   contextSummary.textContent = state.incoming
-    ? 'JARVIS is tracking the active ask, the agreed timing, and the promise of notes. The latest message is weighted highest while the earlier commitment remains active.'
-    : 'The thread is about a study session tomorrow after lunch. Jonah found a quiet library spot and offered to share notes.';
+    ? 'JARVIS is using the messages in this conversation to understand the current request.'
+    : 'Your conversation context will appear here as you add messages.';
   $('turnCount').textContent = `${state.turns.length} turns in working memory`;
 }
 
 async function generate({ speakReply = false } = {}) {
+  if (state.replyPending) return '';
   const text = incomingInput.value.trim();
   if (!text) {
     showToast('Add an incoming message or use voice input first');
@@ -136,6 +125,7 @@ async function generate({ speakReply = false } = {}) {
   renderContext();
   generatingState.textContent = 'calling managed AI…';
   $('generateButton').disabled = true;
+  let generatedReply = '';
 
   try {
     const response = await fetch(`${API_BASE}/api/reply`, {
@@ -151,49 +141,81 @@ async function generate({ speakReply = false } = {}) {
     const payload = await response.json();
     if (!response.ok || payload.error) throw new Error(payload.error || 'The AI endpoint failed.');
     state.explanation = payload.explanation || '';
-    const reply = payload.reply || 'I have a reply ready.';
+    const reply = typeof payload.reply === 'string' ? payload.reply.trim() : '';
+    if (!reply) throw new Error('The AI API returned an empty reply. Please try again.');
     state.turns.push({ from: 'JARVIS', text: reply, time: 'now', assistant: true });
+    generatedReply = reply;
     generatingState.textContent = 'live AI response';
     showToast('JARVIS reply ready');
   } catch (error) {
     state.explanation = '';
-    state.turns.push({ from: 'JARVIS', text: localReplies[state.mode], time: 'now', assistant: true });
-    generatingState.textContent = 'offline fallback';
-    showToast(error.message || 'The AI endpoint is unavailable; a local reply is shown');
+    generatingState.textContent = 'AI unavailable';
+    showToast(error.message || 'The AI API is unavailable. No reply was generated.');
   } finally {
     state.replyPending = false;
     renderMessages();
     $('generateButton').disabled = false;
   }
 
-  const reply = state.turns.findLast(turn => turn.assistant)?.text || '';
-  if (speakReply && reply) speakReplyAloud(reply);
-  return reply;
+  if (speakReply && generatedReply) speakReplyAloud(generatedReply);
+  return generatedReply;
 }
 
-function simulateVoice() {
-  if (state.voicePhase !== 'idle') return;
-  state.voicePhase = 'listening';
-  voiceButton.classList.add('listening');
-  voiceLabel.textContent = 'listening…';
-  voiceStatus.textContent = 'voice channel open · speak now';
+function stopDictation(message = 'transcript ready · review before sending') {
+  dictationActive = false;
+  dictationRecognition?.stop();
+  voiceButton.classList.remove('listening');
+  voiceButton.setAttribute('aria-label', 'Dictate message');
+  voiceButton.title = 'Dictate message';
+  voiceLabel.textContent = 'Dictate';
+  voiceStatus.textContent = message;
+}
 
-  setTimeout(() => {
-    state.voicePhase = 'processing';
-    voiceLabel.textContent = 'processing…';
-    voiceStatus.textContent = 'transcribing audio into message context';
-    setTimeout(() => {
-      state.voicePhase = 'idle';
-      const transcript = 'That sounds great. Tomorrow after lunch works for me — please send the notes when you can.';
-      incomingInput.value = transcript;
-      state.incoming = transcript;
+function startDictation() {
+  if (!SpeechRecognition) {
+    showToast('Speech input is not supported in this browser. Try a recent version of Safari or Chrome.');
+    return;
+  }
+  if (dictationActive) {
+    stopDictation('dictation stopped');
+    return;
+  }
+  dictationRecognition = new SpeechRecognition();
+  dictationRecognition.continuous = false;
+  dictationRecognition.interimResults = true;
+  dictationRecognition.lang = navigator.language || 'en-US';
+  dictationActive = true;
+  voiceButton.classList.add('listening');
+  voiceButton.setAttribute('aria-label', 'Stop dictation');
+  voiceButton.title = 'Stop dictation';
+  voiceLabel.textContent = 'Listening…';
+  voiceStatus.textContent = 'Listening · speak now';
+  dictationRecognition.onresult = event => {
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i += 1) transcript += event.results[i][0].transcript;
+    incomingInput.value = transcript;
+    incomingInput.dispatchEvent(new Event('input'));
+  };
+  dictationRecognition.onerror = event => {
+    const messages = {
+      'not-allowed': 'Microphone permission denied · allow access in browser settings',
+      'audio-capture': 'No microphone detected',
+      network: 'Speech recognition needs an internet connection'
+    };
+    stopDictation(messages[event.error] || `Dictation error · ${event.error}`);
+  };
+  dictationRecognition.onend = () => {
+    if (dictationActive) stopDictation();
+    else {
       voiceButton.classList.remove('listening');
-      voiceLabel.textContent = 'simulate voice';
-      voiceStatus.textContent = 'transcript ready · review before generating';
-      renderContext();
-      showToast('Voice transcript ready for review');
-    }, 900);
-  }, 1100);
+      voiceLabel.textContent = 'Dictate';
+    }
+  };
+  try {
+    dictationRecognition.start();
+  } catch (error) {
+    stopDictation(error.message || 'Could not start microphone');
+  }
 }
 
 function setLiveVoiceState(label, status = label) {
@@ -262,11 +284,17 @@ function stopLiveVoice(status = 'live voice paused · reply mode remains active'
   recognition?.stop();
   window.speechSynthesis?.cancel();
   liveVoiceButton.classList.remove('listening');
+  liveVoiceButton.setAttribute('aria-label', 'Start live voice');
+  liveVoiceButton.title = 'Start live voice';
   liveVoiceLabel.textContent = 'live voice';
   setLiveVoiceState(stateLabel, status);
 }
 
 function startLiveVoice() {
+  if (!window.isSecureContext) {
+    showToast('Live voice requires HTTPS. Open the secure deployed JARVIS address.');
+    return;
+  }
   if (!recognition) {
     showToast('Live voice needs Chrome or Edge microphone support');
     return;
@@ -274,6 +302,8 @@ function startLiveVoice() {
   liveVoiceActive = true;
   liveVoicePanel.hidden = false;
   liveVoiceButton.classList.add('listening');
+  liveVoiceButton.setAttribute('aria-label', 'Pause live voice');
+  liveVoiceButton.title = 'Pause live voice';
   liveVoiceLabel.textContent = 'pause live voice';
   setLiveVoiceState('listening', 'voice channel open · speak naturally');
   beginListening();
@@ -282,9 +312,13 @@ function startLiveVoice() {
 function setupLiveVoice() {
   liveVoicePanel.hidden = true;
   if (!SpeechRecognition) {
-    liveVoiceButton.disabled = true;
-    liveVoiceLabel.textContent = 'live voice unavailable';
-    voiceCapability.textContent = 'use Chrome or Edge for microphone input';
+    // Keep the live-voice icon visible and tappable on every device.
+    // startLiveVoice() explains browser support when the user presses it.
+    liveVoiceButton.disabled = false;
+    liveVoiceButton.setAttribute('aria-label', 'Start live voice');
+    liveVoiceButton.title = 'Start live voice';
+    liveVoiceLabel.textContent = 'Start live voice';
+    voiceCapability.textContent = 'live microphone support depends on your browser';
     return;
   }
 
@@ -377,11 +411,18 @@ function setupPwa() {
   });
 }
 
-$('generateButton').addEventListener('click', generate);
-incomingInput.addEventListener('keydown', event => {
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') generate();
+$('generateButton').addEventListener('click', () => generate());
+incomingInput.addEventListener('input', () => {
+  incomingInput.style.height = 'auto';
+  incomingInput.style.height = `${Math.min(incomingInput.scrollHeight, 220)}px`;
 });
-voiceButton.addEventListener('click', simulateVoice);
+incomingInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    if (!state.replyPending) generate();
+  }
+});
+voiceButton.addEventListener('click', startDictation);
 liveVoiceButton.addEventListener('click', () => {
   if (liveVoiceActive) stopLiveVoice();
   else startLiveVoice();
