@@ -21,6 +21,7 @@ const voiceStatus = $('voiceStatus');
 const installButton = $('installButton');
 const generatingState = $('generatingState');
 const apiStatus = $('apiStatus');
+const apiStatusDot = $('apiStatusDot');
 const toast = $('toast');
 const API_BASE = window.location.hostname.endsWith('github.io')
   ? 'https://jarvisreply-dvh8yfjn.manus.space'
@@ -76,7 +77,7 @@ function renderMessages() {
 
 function renderModes() {
   modeGrid.innerHTML = modes.map((mode, index) => `
-    <button class="mode-button ${state.mode === mode ? 'active' : ''}" data-mode="${mode}">
+    <button class="mode-button ${state.mode === mode ? 'active' : ''}" data-mode="${mode}" aria-pressed="${state.mode === mode}">
       ${String(index + 1).padStart(2, '0')} ${mode}
     </button>
   `).join('');
@@ -109,7 +110,7 @@ async function generate() {
   }
 
   state.incoming = text;
-  state.turns.push({ from: 'Jonah', text, time: '18:49' });
+  state.turns.push({ from: 'Pasted message', text, time: new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date()) });
   state.context.unshift(`latest ask: ${text.slice(0, 28)}${text.length > 28 ? '…' : ''}`);
   state.replyPending = true;
   renderMessages();
@@ -209,9 +210,12 @@ async function checkApi() {
   try {
     const response = await fetch(`${API_BASE}/api/health`);
     const payload = await response.json();
-    apiStatus.textContent = payload.aiConfigured ? 'AI endpoint / connected' : 'AI endpoint / needs server config';
+    const connected = Boolean(response.ok && payload.aiConfigured);
+    apiStatus.textContent = connected ? 'AI service ready' : 'AI service needs server setup';
+    apiStatusDot.classList.toggle('connected', connected);
   } catch {
-    apiStatus.textContent = 'AI endpoint / offline';
+    apiStatus.textContent = 'AI service unavailable';
+    apiStatusDot.classList.remove('connected');
   }
 }
 
@@ -285,8 +289,6 @@ $('newThreadButton').addEventListener('click', () => {
   generatingState.textContent = 'new thread';
   showToast('New empty thread ready');
 });
-$('settingsButton').addEventListener('click', () => showToast('Settings are reserved for the next build'));
-
 setupPwa();
 renderMessages();
 renderModes();

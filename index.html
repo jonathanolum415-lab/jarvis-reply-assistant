@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#075e54" />
+    <meta name="theme-color" content="#f0f2f5" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="JARVIS" />
     <title>JARVIS Reply Assistant</title>
     <link rel="manifest" href="./manifest.webmanifest" />
@@ -18,83 +18,84 @@
   </head>
   <body>
     <div class="whatsapp-app">
-      <aside class="chat-sidebar" aria-label="Conversation history">
-        <div class="wa-sidebar-header">
-          <div class="profile-avatar">J</div>
-          <div class="wa-sidebar-actions">
-            <button class="round-icon" id="newThreadButton" aria-label="New chat">＋</button>
-            <button class="round-icon" id="settingsButton" aria-label="Open settings">⋮</button>
-          </div>
-        </div>
-        <div class="chat-sidebar-title">
-          <div>
-            <span class="eyebrow">JARVIS</span>
-            <h1>Chats</h1>
-          </div>
-          <span class="online-dot" aria-label="AI endpoint connected"></span>
-        </div>
-        <div class="chat-search"><span aria-hidden="true">⌕</span><input aria-label="Search chats" placeholder="Search or start new chat" /></div>
-        <nav class="chat-filters" aria-label="Chat filters">
-          <button class="chat-filter active">All</button>
-          <button class="chat-filter">Unread</button>
-          <button class="chat-filter">Favorites</button>
-        </nav>
-        <div class="chat-list">
-          <button class="chat-row active">
-            <span class="chat-avatar avatar-jonah">J</span>
-            <span class="chat-row-copy"><strong>Jonah N.</strong><small>Perfect. I found a quiet spot near the library…</small></span>
-            <span class="chat-row-meta"><time>18:46</time><i class="unread-count">1</i></span>
+      <aside class="chat-sidebar" aria-label="JARVIS workspace">
+        <header class="sidebar-header">
+          <a class="brand" href="./" aria-label="JARVIS Reply Assistant home">
+            <span class="brand-mark" aria-hidden="true">J</span>
+            <span>JARVIS</span>
+          </a>
+          <button class="icon-button new-thread-button" id="newThreadButton" aria-label="Start a new conversation" title="New conversation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
           </button>
-          <button class="chat-row">
-            <span class="chat-avatar avatar-jarvis">J</span>
-            <span class="chat-row-copy"><strong>JARVIS Reply Assistant</strong><small>Ready to help you reply</small></span>
-            <span class="chat-row-meta"><time>now</time></span>
-          </button>
+        </header>
+        <section class="workspace-copy" aria-labelledby="workspaceTitle">
+          <span class="eyebrow">YOUR WORKSPACE</span>
+          <h1 id="workspaceTitle">Reply assistant</h1>
+          <p>Bring a message here and shape a reply with JARVIS.</p>
+        </section>
+        <div class="privacy-note">
+          <span class="privacy-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></svg>
+          </span>
+          <p><strong>Manual context only</strong><br />Paste messages yourself. JARVIS has no live WhatsApp access.</p>
         </div>
-        <div class="sidebar-disclosure"><span class="lock-mark">⌁</span><span><strong>Private by design</strong><br />Manual paste only · no live WhatsApp access</span></div>
       </aside>
 
       <main class="chat-main">
         <header class="chat-header">
-          <button class="mobile-back" aria-label="Back to chats">‹</button>
-          <div class="chat-avatar avatar-jonah">J</div>
-          <div class="chat-header-copy"><strong>Jonah N.</strong><span><i class="presence-dot"></i> online · manual context</span></div>
-          <div class="chat-header-actions">
-            <button class="header-icon" aria-label="Search conversation">⌕</button>
-            <button class="header-icon" aria-label="Conversation menu">⋮</button>
+          <div class="assistant-avatar" aria-hidden="true">J</div>
+          <div class="chat-header-copy">
+            <strong>JARVIS Reply Assistant</strong>
+            <span>AI reply workspace <i class="presence-dot" aria-hidden="true"></i></span>
           </div>
+          <div class="header-disclosure">Manual paste · No WhatsApp connection</div>
         </header>
 
         <section class="conversation" aria-label="Conversation workspace">
-          <div class="manual-banner"><span class="lock-mark">⌁</span> WhatsApp-style workspace · paste messages manually · no live WhatsApp access</div>
-          <div class="message-stream" id="messageStream" aria-live="polite"></div>
+          <div class="conversation-note"><span aria-hidden="true">🔒</span> Messages are only shared with the configured AI when you request a reply.</div>
+          <div class="message-stream" id="messageStream" aria-live="polite" aria-relevant="additions text"></div>
           <div class="composer-wrap">
             <div class="voice-status" id="voiceStatus" aria-live="polite"></div>
             <div class="composer">
-              <button class="composer-icon" aria-label="Add attachment">＋</button>
-              <textarea id="incomingInput" rows="1" placeholder="Paste an incoming message…"></textarea>
-              <button class="composer-icon" id="voiceButton" aria-label="Voice input"><span class="mic-glyph">◉</span><span id="voiceLabel" class="sr-only">Dictate</span></button>
-              <button class="send-button" id="generateButton" aria-label="Generate reply">➤</button>
+              <textarea id="incomingInput" rows="1" aria-label="Incoming message" placeholder="Paste an incoming message…"></textarea>
+              <div class="composer-actions">
+                <button class="icon-button voice-button" id="voiceButton" aria-label="Dictate message" title="Dictate message">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 18v3m-4 0h8"/></svg>
+                  <span id="voiceLabel" class="sr-only">Dictate</span>
+                </button>
+                <button class="send-button" id="generateButton" aria-label="Generate reply" title="Generate reply">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 16 8-16 8 3-8-3-8Zm3 8h13" /></svg>
+                </button>
+              </div>
             </div>
             <div class="composer-tools">
-              <div class="voice-tools">
-                <span class="shortcut">Ctrl ↵</span>
-              </div>
-              <span class="composer-hint">JARVIS will reply in this conversation</span>
+              <span class="shortcut"><kbd>Enter</kbd> to send <span aria-hidden="true">·</span> <kbd>Shift + Enter</kbd> for a new line</span>
+              <span class="composer-hint">Review every reply before you use it.</span>
             </div>
           </div>
         </section>
       </main>
 
-      <aside class="jarvis-drawer" aria-label="JARVIS intelligence panel">
-        <div class="drawer-heading"><div class="jarvis-orb">J</div><div><span class="eyebrow">JARVIS</span><h2>Reply intelligence</h2></div></div>
-        <div class="drawer-status"><span class="online-dot"></span><span id="apiStatus">AI endpoint / connecting…</span></div>
-        <div class="drawer-section"><div class="drawer-label"><span>Tone</span><span class="generating-state" id="generatingState">ready</span></div><div class="mode-grid" id="modeGrid"></div></div>
-        <div class="drawer-section"><div class="drawer-label"><span>Conversation context</span><button class="text-button" id="explainButton">explain</button></div><p class="context-summary" id="contextSummary"></p><div class="context-chips" id="contextChips"></div><div class="turn-count"><span class="online-dot"></span><span id="turnCount">3 turns in working memory</span></div></div>
-        <button class="install-button" id="installButton" hidden>install app</button>
+      <aside class="jarvis-drawer" aria-label="Reply settings and context">
+        <div class="drawer-heading">
+          <div class="drawer-orb" aria-hidden="true">J</div>
+          <div><span class="eyebrow">JARVIS</span><h2>Reply settings</h2></div>
+        </div>
+        <div class="drawer-status"><span class="status-dot" id="apiStatusDot" aria-hidden="true"></span><span id="apiStatus" role="status">Checking AI connection…</span></div>
+        <section class="drawer-section" aria-labelledby="toneTitle">
+          <div class="drawer-label"><h3 id="toneTitle">Response tone</h3><span class="generating-state" id="generatingState">Ready</span></div>
+          <div class="mode-grid" id="modeGrid" aria-label="Choose a response tone"></div>
+        </section>
+        <section class="drawer-section context-section" aria-labelledby="contextTitle">
+          <div class="drawer-label"><h3 id="contextTitle">Conversation context</h3><button class="text-button" id="explainButton">Explain reply</button></div>
+          <p class="context-summary" id="contextSummary"></p>
+          <div class="context-chips" id="contextChips"></div>
+          <div class="turn-count"><span class="turn-dot" aria-hidden="true"></span><span id="turnCount">0 turns in working memory</span></div>
+        </section>
+        <button class="install-button" id="installButton" hidden>Install app</button>
       </aside>
     </div>
-    <div class="toast" id="toast" role="status"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script type="module" src="./app.js"></script>
   </body>
 </html>
