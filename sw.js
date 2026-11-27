@@ -1,4 +1,4 @@
-const CACHE_NAME = 'jarvis-shell-v5';
+const CACHE_NAME = 'jarvis-shell-v6';
 const APP_SHELL = ['./'];
 
 self.addEventListener('install', event => {
